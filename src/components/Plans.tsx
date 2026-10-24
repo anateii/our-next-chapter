@@ -2,7 +2,7 @@ import { Home, Plane, ChevronRight, Info } from "lucide-react";
 import { plans } from "../data";
 import type { Plan } from "../types";
 
-export default function Plans({ onOpen }: { onOpen?: (p: Plan) => void }) {
+export default function Plans({ onOpen }: Readonly<{ onOpen?: (p: Plan) => void }>) {
   return (
     <section className="card">
       <h2>Our plans</h2>

@@ -2,7 +2,7 @@ import { Car, Briefcase, Home, Plane, Users } from "lucide-react";
 import { milestones } from "../data";
 import type { Milestone } from "../types";
 
-const icons: Record<Milestone["icon"], JSX.Element> = {
+const icons: Record<Milestone["icon"], React.JSX.Element> = {
   car: <Car />,
   job: <Briefcase />,
   home: <Home />,

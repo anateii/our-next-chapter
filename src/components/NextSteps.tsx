@@ -9,7 +9,7 @@ export default function NextSteps({
 }: {
   tasks: Task[];
   onToggle: (id: string) => void;
-}) {
+} & Readonly<{}>) {
   return (
     <section className="card">
       <h2>This week's next steps</h2>

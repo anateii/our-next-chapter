@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Show, SignIn } from "@clerk/react";
 import { initialTasks, initialGoals } from "./data";
 import type { Task, MoneyGoal, Win } from "./types";
 import Sidebar from "./components/Sidebar";
@@ -46,22 +47,31 @@ export default function App() {
     ]);
 
   return (
-    <div className="layout">
-      <Sidebar />
-      <main className="main">
-        <Header />
-        <FocusBanner />
-        <Roadmap />
-        <div className="row two">
-          <NextSteps tasks={tasks} onToggle={toggleTask} />
-          <Plans />
+    <>
+      <Show when="signed-out">
+        <div className="auth-screen">
+          <SignIn routing="hash" />
         </div>
-        <div className="row three">
-          <MoneyGoals goals={goals} onSetTarget={setTarget} />
-          <Wins wins={wins} onLog={logWin} />
-          <Decisions />
+      </Show>
+      <Show when="signed-in">
+        <div className="layout">
+          <Sidebar />
+          <main className="main">
+            <Header />
+            <FocusBanner />
+            <Roadmap />
+            <div className="row two">
+              <NextSteps tasks={tasks} onToggle={toggleTask} />
+              <Plans />
+            </div>
+            <div className="row three">
+              <MoneyGoals goals={goals} onSetTarget={setTarget} />
+              <Wins wins={wins} onLog={logWin} />
+              <Decisions />
+            </div>
+          </main>
         </div>
-      </main>
-    </div>
+      </Show>
+    </>
   );
 }

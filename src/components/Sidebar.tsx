@@ -18,7 +18,7 @@ const items = [
   { label: "Decisions", icon: Lightbulb, href: "#decisions" },
 ];
 
-export default function Sidebar({ active = "Overview" }: { active?: string }) {
+export default function Sidebar({ active = "Overview" }: Readonly<{ active?: string }>) {
   return (
     <aside className="sidebar">
       <Sprout color="#4f6f52" size={28} />

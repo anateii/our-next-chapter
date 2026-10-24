@@ -1,6 +1,11 @@
 import { Plus } from "lucide-react";
+import { UserButton } from "@clerk/react";
 
-export default function Header({ onAddStep }: { onAddStep?: () => void }) {
+export default function Header({
+  onAddStep,
+}: {
+  readonly onAddStep?: () => void;
+}) {
   return (
     <header className="header">
       <div>
@@ -13,10 +18,7 @@ export default function Header({ onAddStep }: { onAddStep?: () => void }) {
         <Plus size={16} /> Add a step
       </button>
       <div className="avatar" style={{ background: "#ece7f7" }}>
-        A
-      </div>
-      <div className="avatar" style={{ background: "#e3ecdf" }}>
-        O
+        <UserButton />
       </div>
     </header>
   );

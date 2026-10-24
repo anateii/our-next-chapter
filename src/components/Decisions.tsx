@@ -5,7 +5,7 @@ import type { Decision } from "../types";
 export default function Decisions({
   onOpen,
 }: {
-  onOpen?: (d: Decision) => void;
+  readonly onOpen?: (d: Decision) => void;
 }) {
   return (
     <section className="card">

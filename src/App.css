@@ -16,6 +16,13 @@
 body {
   margin: 0;
 }
+.auth-screen {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 16px;
+  box-sizing: border-box;
+}
 .layout {
   display: grid;
   grid-template-columns: 220px 1fr;

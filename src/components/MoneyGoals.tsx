@@ -3,10 +3,10 @@ import type { MoneyGoal } from "../types";
 export default function MoneyGoals({
   goals,
   onSetTarget,
-}: {
+}: Readonly<{
   goals: MoneyGoal[];
   onSetTarget: (id: string, t: number) => void;
-}) {
+}>) {
   return (
     <section className="card">
       <h2>Money goals</h2>

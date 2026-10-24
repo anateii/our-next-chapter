@@ -4,7 +4,7 @@ export default function Wins({
   wins,
   onLog,
 }: {
-  wins: Win[];
+  wins: readonly Win[];
   onLog: (t: string) => void;
 }) {
   return (
