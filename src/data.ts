@@ -1,4 +1,12 @@
-import type { Milestone, Task, Plan, MoneyGoal, Decision } from "./types";
+import type {
+  Milestone,
+  Task,
+  Plan,
+  MoneyGoal,
+  Decision,
+  CalendarEvent,
+  Adventure,
+} from "./types";
 
 export const focus = "A home together. A job that fits. Thailand in 2027.";
 
@@ -17,6 +25,7 @@ export const initialTasks: Task[] = [
     owner: "Both",
     status: "To do",
     done: false,
+    time: "10:00 AM",
   },
   {
     id: "t2",
@@ -24,6 +33,7 @@ export const initialTasks: Task[] = [
     owner: "Both",
     status: "To do",
     done: false,
+    time: "2:00 PM",
   },
   {
     id: "t3",
@@ -31,6 +41,7 @@ export const initialTasks: Task[] = [
     owner: "Ana",
     status: "In progress",
     done: false,
+    time: "7:00 PM",
   },
   {
     id: "t4",
@@ -65,4 +76,30 @@ export const initialGoals: MoneyGoal[] = [
 export const decisions: Decision[] = [
   { id: "d1", question: "Where should we rent?", icon: "pin" },
   { id: "d2", question: "When could Oliver join?", icon: "calendar" },
+];
+
+// Sample data below until progress and the calendar are stored in the database.
+export const adventure: Adventure = {
+  title: "Thailand",
+  subtitle: "Ana moves in 2027 · Oliver joins after",
+  progress: 35,
+};
+
+const daysFromToday = (n: number) => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + n);
+  return d;
+};
+
+export const sampleEvents: CalendarEvent[] = [
+  { id: "e1", title: "Apartment viewing", date: daysFromToday(1), time: "10:30 AM", kind: "home" },
+  { id: "e2", title: "Dinner with friends", date: daysFromToday(1), time: "7:00 PM", kind: "food" },
+  {
+    id: "e3",
+    title: "Weekly check-in",
+    date: daysFromToday((7 - new Date().getDay()) % 7),
+    time: "6:00 PM",
+    kind: "checkin",
+  },
 ];

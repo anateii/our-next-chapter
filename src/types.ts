@@ -20,6 +20,19 @@ export interface Task {
   owner: Person;
   status: Status;
   done: boolean;
+  time?: string;
+}
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  date: Date;
+  time: string;
+  kind: "home" | "food" | "checkin";
+}
+export interface Adventure {
+  title: string;
+  subtitle: string;
+  progress: number;
 }
 export interface Plan {
   id: string;

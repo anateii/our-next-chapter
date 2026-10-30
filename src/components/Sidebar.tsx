@@ -1,45 +1,50 @@
 import {
-  Sprout,
-  Home,
-  Map,
-  CheckSquare,
-  GitBranch,
-  Database,
-  Lightbulb,
-  Calendar,
+  Heart,
+  House,
+  SquareCheck,
+  CalendarDays,
+  Wallet,
+  Smile,
+  Settings,
 } from "lucide-react";
+import Avatars from "./Avatars";
 
 const items = [
-  { label: "Overview", icon: Home, href: "#overview" },
-  { label: "Roadmap", icon: Map, href: "#roadmap" },
-  { label: "Our tasks", icon: CheckSquare, href: "#tasks" },
-  { label: "Plan A / Plan B", icon: GitBranch, href: "#plans" },
-  { label: "Money", icon: Database, href: "#money" },
-  { label: "Decisions", icon: Lightbulb, href: "#decisions" },
+  { label: "Home", icon: House, href: "#home" },
+  { label: "Our Goals", icon: Heart, href: "#goals" },
+  { label: "Tasks", icon: SquareCheck, href: "#tasks" },
+  { label: "Calendar", icon: CalendarDays, href: "#calendar" },
+  { label: "Finances", icon: Wallet, href: "#finances" },
+  { label: "Our Space", icon: Smile, href: "#space" },
 ];
 
-export default function Sidebar({ active = "Overview" }: Readonly<{ active?: string }>) {
+export default function Sidebar({ active = "Home" }: Readonly<{ active?: string }>) {
   return (
     <aside className="sidebar">
-      <Sprout color="#4f6f52" size={28} />
-      <nav>
+      <a className="brand" href="#home">
+        <Heart aria-hidden="true" size={26} strokeWidth={2.2} />
+        <span>Our Next Chapter</span>
+      </a>
+      <nav aria-label="Main">
         {items.map(({ label, icon: Icon, href }) => (
           <a
             key={label}
             href={href}
-            className={label === active ? "active" : ""}
+            className={label === active ? "nav-link active" : "nav-link"}
+            aria-current={label === active ? "page" : undefined}
           >
-            <Icon size={18} /> {label}
+            <Icon aria-hidden="true" size={20} /> {label}
           </a>
         ))}
       </nav>
-      <div className="checkin">
-        <Calendar size={18} />
-        <div>
-          Weekly check-in
-          <br />
-          <span className="muted">Sunday</span>
+      <div className="sidebar-footer">
+        <div className="couple">
+          <Avatars owner="Both" />
+          <span>Ana &amp; Oliver</span>
         </div>
+        <a className="nav-link" href="#settings">
+          <Settings aria-hidden="true" size={20} /> Settings
+        </a>
       </div>
     </aside>
   );
