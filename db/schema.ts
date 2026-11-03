@@ -95,9 +95,13 @@ export const tasks = pgTable(
     spaceId: spaceId(),
     title: text("title").notNull(),
     ownerUserId: text("owner_user_id"), // null = both of you
-    status: text("status").notNull().default("To do"),
+    status: text("status").notNull().default("To do"), // 'To do' | 'In progress' | 'Done'
     done: boolean("done").notNull().default(false),
     dueAt: timestamp("due_at", { withTimezone: true }), // null = no set day
+    goalId: uuid("goal_id").references(() => goals.id, { onDelete: "set null" }),
+    notes: text("notes"),
+    createdBy: text("created_by"), // Clerk user id; null for tasks made before this column
+    doneAt: timestamp("done_at", { withTimezone: true }), // when it was ticked off
     createdAt: createdAt(),
   },
   (t) => [

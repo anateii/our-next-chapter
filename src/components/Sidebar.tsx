@@ -6,9 +6,12 @@ import {
   Wallet,
   Smile,
   Settings,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { UserButton } from "@clerk/react";
 import Avatars from "./Avatars";
+import { useTheme } from "../helpers/theme";
 
 // On small screens the nav becomes a bottom bar, which holds at most five
 // items; "secondary" ones move to the top app bar instead.
@@ -22,6 +25,8 @@ const items = [
 ];
 
 export default function Sidebar({ active = "Home" }: Readonly<{ active?: string }>) {
+  const { theme, toggle } = useTheme();
+  const dark = theme === "dark";
   return (
     <aside className="sidebar">
       <a className="brand" href="#home">
@@ -61,6 +66,17 @@ export default function Sidebar({ active = "Home" }: Readonly<{ active?: string 
             <UserButton />
           </span>
         </div>
+        <button
+          type="button"
+          className="nav-link theme-toggle"
+          aria-label={dark ? "Switch to light theme" : "Switch to dark theme"}
+          onClick={toggle}
+        >
+          {dark ? <Sun aria-hidden="true" size={20} /> : <Moon aria-hidden="true" size={20} />}
+          <span className="nav-label" aria-hidden="true">
+            {dark ? "Light mode" : "Dark mode"}
+          </span>
+        </button>
         <a className="nav-link" href="#settings">
           <Settings aria-hidden="true" size={20} /> <span className="nav-label">Settings</span>
         </a>

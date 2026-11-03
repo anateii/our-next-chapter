@@ -1,5 +1,5 @@
-import type { CalendarEvent, Task } from "../types";
-import { toPerson, type ApiMember } from "./goals";
+import type { CalendarEvent } from "../types";
+import type { ApiMember } from "./goals";
 
 // What GET /api/home returns (see api/home.ts).
 export interface ApiHome {
@@ -28,12 +28,6 @@ export interface ApiHome {
 const fmtTime = (iso: string) =>
   new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 
-// Tasks with a day but no time are stored at local midnight (see TaskDialog).
-const taskTime = (iso: string) => {
-  const d = new Date(iso);
-  return d.getHours() === 0 && d.getMinutes() === 0 ? "Any time" : fmtTime(iso);
-};
-
 // "Today" and "this week" depend on the viewer's timezone, so send local midnights.
 export const homeQuery = (now = new Date()) => {
   const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -44,15 +38,6 @@ export const homeQuery = (now = new Date()) => {
     weekStart: weekStart.toISOString(),
   }).toString();
 };
-
-export const fromApiTask = (t: ApiHome["today"][number], members: readonly ApiMember[]): Task => ({
-  id: t.id,
-  title: t.title,
-  owner: toPerson(t.ownerUserId, members),
-  status: t.status,
-  done: t.done,
-  time: t.dueAt ? taskTime(t.dueAt) : undefined,
-});
 
 export const fromApiEvent = (e: ApiHome["week"]["events"][number]): CalendarEvent => ({
   id: e.id,

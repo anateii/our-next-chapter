@@ -16,7 +16,7 @@ export default function TodayList({
   const left = tasks.filter((t) => !t.done).length;
 
   return (
-    <section id="tasks" className="card panel">
+    <section id="today" className="card panel">
       <div className="panel-head">
         <div className="panel-title">
           <h2>Today</h2>

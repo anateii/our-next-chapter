@@ -1,6 +1,5 @@
 import type {
   Milestone,
-  Task,
   Plan,
   MoneyGoal,
   Decision,
@@ -17,40 +16,6 @@ export const milestones: Milestone[] = [
   { id: "m3", title: "Move in together", icon: "home", status: "Planning" },
   { id: "m4", title: "Ana → Thailand", icon: "plane", status: "2027" },
   { id: "m5", title: "Oliver joins", icon: "people", status: "Date to decide" },
-];
-
-export const initialTasks: Task[] = [
-  {
-    id: "t1",
-    title: "Agree our apartment budget",
-    owner: "Both",
-    status: "To do",
-    done: false,
-    time: "10:00 AM",
-  },
-  {
-    id: "t2",
-    title: "Shortlist places to rent",
-    owner: "Both",
-    status: "To do",
-    done: false,
-    time: "2:00 PM",
-  },
-  {
-    id: "t3",
-    title: "Apply for suitable remote roles",
-    owner: "Ana",
-    status: "In progress",
-    done: false,
-    time: "7:00 PM",
-  },
-  {
-    id: "t4",
-    title: "Discuss Oliver's joining window",
-    owner: "Oliver",
-    status: "To discuss",
-    done: false,
-  },
 ];
 
 export const plans: Plan[] = [

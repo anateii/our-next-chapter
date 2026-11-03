@@ -46,7 +46,7 @@
   gap: 4px;
   padding: 4px;
   border-radius: 14px;
-  background: #ecebf4;
+  background: var(--seg-bg);
 }
 .view-toggle .icon-btn {
   width: 40px;
@@ -102,8 +102,8 @@
   color: var(--peach);
 }
 .cat-career {
-  background: #e7f0fa;
-  color: #2f6fb5;
+  background: var(--sky-soft);
+  color: var(--sky);
 }
 .cat-finance {
   background: var(--amber-soft);
@@ -132,20 +132,20 @@
 }
 .featured-pill {
   right: 12px;
-  background: rgba(255, 255, 255, 0.95);
+  background: color-mix(in srgb, var(--surface) 95%, transparent);
   color: var(--amber);
 }
 .status-in-progress {
-  background: #e3f3ec;
+  background: var(--sage-soft);
   color: var(--sage-strong);
 }
 .status-not-started {
-  background: rgba(255, 255, 255, 0.95);
+  background: color-mix(in srgb, var(--surface) 95%, transparent);
   color: var(--text-2);
 }
 .status-completed {
   background: var(--sage);
-  color: #fff;
+  color: var(--on-fill);
 }
 
 .goal-body {
@@ -310,7 +310,7 @@
   position: relative;
   aspect-ratio: 16 / 9;
   border-radius: var(--radius-md);
-  border: 2px dashed #d9d7ea;
+  border: 2px dashed var(--dash-line);
   background: var(--surface-sunken);
   overflow: hidden;
   display: grid;

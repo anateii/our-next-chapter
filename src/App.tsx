@@ -6,9 +6,10 @@ import { goalProgress, goalStatus } from "./goals";
 import Sidebar from "./components/Sidebar";
 import Home from "./pages/Home";
 import Goals from "./pages/Goals";
+import Tasks from "./pages/Tasks";
 import Onboarding from "./pages/Onboarding";
 import type { GoalEdits } from "./components/NewGoalDialog";
-import { Check, CircleAlert, LoaderCircle } from "lucide-react";
+import { Check, CircleAlert, LoaderCircle, Undo2 } from "lucide-react";
 import TaskDialog, {
   type NewTask,
   type TaskDraft,
@@ -18,21 +19,34 @@ import { useApi } from "./helpers/api";
 import {
   fromApiGoal,
   toApiNewGoal,
+  toPerson,
   toUserId,
   type ApiGoal,
   type ApiMember,
 } from "./helpers/goals";
+import { fromApiEvent, homeQuery, type ApiHome } from "./helpers/home";
 import {
-  fromApiEvent,
+  applyEdits,
+  byDue,
+  daysFromToday,
   fromApiTask,
-  homeQuery,
-  type ApiHome,
-} from "./helpers/home";
+  groupLabels,
+  taskGroup,
+  toApiEdits,
+  type ApiTask,
+  type TaskEdits,
+} from "./helpers/tasks";
 
-// Tiny hash router: #goals opens Our Goals; any other hash stays on Home
-// (Home uses #tasks / #calendar as in-page anchors).
+// Tiny hash router: #goals opens Our Goals, #tasks opens Tasks; any other
+// hash stays on Home (Home uses #calendar as an in-page anchor).
+const pages: Record<string, "goals" | "tasks"> = { "#goals": "goals", "#tasks": "tasks" };
+const activeLabel = { home: "Home", goals: "Our Goals", tasks: "Tasks" } as const;
+
+// How long an Undo toast stays up; deletes wait this long before reaching the API.
+const UNDO_MS = 5000;
 function usePage() {
-  const read = () => (globalThis.location.hash === "#goals" ? "goals" : "home");
+  const read = (): "home" | "goals" | "tasks" =>
+    pages[globalThis.location.hash] ?? "home";
   const [page, setPage] = useState(read);
   useEffect(() => {
     const onHash = () => setPage(read());
@@ -48,7 +62,6 @@ export default function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [tasksLeft, setTasksLeft] = useState(0);
   const [upcomingEvents, setUpcomingEvents] = useState(0);
   const [members, setMembers] = useState<ApiMember[]>([]);
   const [spaceName, setSpaceName] = useState("");
@@ -65,7 +78,7 @@ export default function App() {
     document.getElementById("page-title")?.focus();
   }, [page]);
 
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, userId } = useAuth();
 
   // Does the signed-in user have a space yet? New users go through onboarding.
   const [spaceState, setSpaceState] = useState<
@@ -103,18 +116,21 @@ export default function App() {
   useEffect(() => {
     if (spaceState !== "ready") return;
     let cancelled = false;
+    // Open tasks, plus the ones done in the last 7 days (from local midnight).
+    const now = new Date();
+    const doneSince = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
     Promise.all([
       api<ApiHome>(`/home?${homeQuery()}`),
       api<{ goals: ApiGoal[] }>("/goals"),
+      api<{ tasks: ApiTask[] }>(`/tasks?doneSince=${encodeURIComponent(doneSince.toISOString())}`),
     ])
-      .then(([home, res]) => {
+      .then(([home, res, all]) => {
         if (cancelled) return;
         setMembers(home.members);
         setSpaceName(home.space.name);
         setGoals(res.goals.map((g) => fromApiGoal(g, home.members)));
-        setTasks(home.today.map((t) => fromApiTask(t, home.members)));
+        setTasks(all.tasks.map((t) => fromApiTask(t, home.members, userId)));
         setEvents(home.week.events.map(fromApiEvent));
-        setTasksLeft(home.stats.tasksLeft);
         setUpcomingEvents(home.stats.upcomingEvents);
         setDataLoaded(true);
       })
@@ -128,14 +144,16 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `api` is a new function each render
   }, [spaceState]);
 
-  // Tick immediately, save in the background, undo if the save fails.
-  // Short confirmation in the corner, e.g. after adding a task from Goals.
-  const [toast, setToast] = useState<{ message: string; ok: boolean } | null>(
-    null,
-  );
+  // Short confirmation in the corner, e.g. "Added to Today", with Undo when
+  // the action can be taken back.
+  const [toast, setToast] = useState<{
+    message: string;
+    ok: boolean;
+    undo?: () => void;
+  } | null>(null);
   useEffect(() => {
     if (!toast) return;
-    const id = setTimeout(() => setToast(null), 4000);
+    const id = setTimeout(() => setToast(null), toast.undo ? UNDO_MS : 4000);
     return () => clearTimeout(id);
   }, [toast]);
 
@@ -153,52 +171,100 @@ export default function App() {
     taskDialogRef.current?.showModal();
   };
 
-  // Save, then add it to Today if it's due today. Tasks to do counts every open task.
+  // Save, then add the stored task (with its real id) to the list.
   const createTask = (t: NewTask) =>
-    api<{ task: ApiHome["today"][number] }>("/tasks", {
+    api<{ task: ApiTask }>("/tasks", {
       method: "POST",
       body: JSON.stringify({
         title: t.title,
         ownerUserId: toUserId(t.owner, members),
         dueAt: t.dueAt,
+        goalId: t.goalId,
       }),
     })
       .then(({ task }) => {
-        const dueToday =
-          !!task.dueAt &&
-          new Date(task.dueAt).toDateString() === new Date().toDateString();
-        if (dueToday) setTasks((ts) => [...ts, fromApiTask(task, members)]);
-        setTasksLeft((n) => n + 1);
-        setToast({
-          message: dueToday ? "Added to today's tasks" : "Added to tasks",
-          ok: true,
-        });
+        const created = fromApiTask(task, members, userId);
+        setTasks((ts) => [...ts, created]);
+        setToast({ message: `Added to ${groupLabels[taskGroup(created)]}`, ok: true });
+        return created;
       })
       .catch((err) => {
         console.error("Adding task failed:", err);
         setToast({ message: "Couldn't add the task. Try again.", ok: false });
+        return undefined;
       });
+
+  // Change immediately, save in the background, put it back if the save fails.
+  // Resolves true once saved.
+  const updateTask = (id: string, edits: TaskEdits) => {
+    const before = tasks.find((t) => t.id === id);
+    if (!before) return Promise.resolve(false);
+    const replace = (task: Task) =>
+      setTasks((ts) => ts.map((t) => (t.id === id ? task : t)));
+    replace(applyEdits(before, edits));
+    return api<{ task: ApiTask }>("/tasks", {
+      method: "PATCH",
+      body: JSON.stringify({ id, ...toApiEdits(edits, members) }),
+    })
+      .then(({ task }) => {
+        replace(fromApiTask(task, members, userId));
+        return true;
+      })
+      .catch((err) => {
+        console.error("Saving task failed:", err);
+        replace(before);
+        setToast({ message: "Couldn't save that change. Try again.", ok: false });
+        return false;
+      });
+  };
+
+  // An update with an Undo toast; Undo puts back the fields it changed.
+  const changeTask = (id: string, edits: TaskEdits, message: string) => {
+    const before = tasks.find((t) => t.id === id);
+    if (!before) return;
+    const previous = Object.fromEntries(
+      Object.keys(edits).map((k) => [k, before[k as keyof TaskEdits] ?? null]),
+    ) as TaskEdits;
+    void updateTask(id, edits);
+    setToast({ message, ok: true, undo: () => void updateTask(id, previous) });
+  };
 
   const toggleTask = (id: string) => {
     const task = tasks.find((t) => t.id === id);
     if (!task) return;
-    const setDone = (done: boolean) => {
-      setTasks((ts) =>
-        ts.map((t) =>
-          t.id === id ? { ...t, done, status: done ? "Done" : "To do" } : t,
-        ),
-      );
-      setTasksLeft((n) => n + (done ? -1 : 1));
-    };
-    setDone(!task.done);
-    api("/tasks", {
-      method: "PATCH",
-      body: JSON.stringify({ id, done: !task.done }),
-    }).catch((err) => {
-      console.error("Saving task failed:", err);
-      setDone(task.done);
+    if (task.done) changeTask(id, { status: "To do" }, "Moved back to to do");
+    else changeTask(id, { status: "Done" }, `Done: ${task.title}`);
+  };
+
+  // Hide it now and delete it once the Undo window has passed.
+  const deleteTask = (id: string) => {
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+    const restore = () => setTasks((ts) => [...ts, task]);
+    setTasks((ts) => ts.filter((t) => t.id !== id));
+    const timer = setTimeout(() => {
+      api(`/tasks?id=${encodeURIComponent(id)}`, { method: "DELETE" }).catch((err) => {
+        console.error("Deleting task failed:", err);
+        restore();
+        setToast({ message: "Couldn't delete the task. Try again.", ok: false });
+      });
+    }, UNDO_MS);
+    setToast({
+      message: `Deleted “${task.title}”`,
+      ok: true,
+      undo: () => {
+        clearTimeout(timer);
+        restore();
+      },
     });
   };
+
+  // Home shows what's due today; "Tasks to do" counts every open task.
+  const todayTasks = tasks
+    .filter((t) => t.dueAt && daysFromToday(t.dueAt) === 0)
+    .sort(byDue);
+  const tasksLeft = tasks.filter((t) => !t.done).length;
+  const me = toPerson(userId ?? null, members);
 
   // Save to the API, then add the stored goal (with its real id) to the list.
   const createGoal = (g: Omit<Goal, "id">) =>
@@ -306,9 +372,9 @@ export default function App() {
       return <Onboarding onDone={() => setSpaceState("ready")} />;
     return (
       <div className="layout">
-        <Sidebar active={page === "goals" ? "Our Goals" : "Home"} />
+        <Sidebar active={activeLabel[page]} />
         <main id="main" className="main">
-          {page === "goals" ? (
+          {page === "goals" && (
             <Goals
               goals={goals}
               onCreate={createGoal}
@@ -316,9 +382,23 @@ export default function App() {
               onFeature={featureGoal}
               onComplete={completeGoal}
             />
-          ) : (
-            <Home
+          )}
+          {page === "tasks" && (
+            <Tasks
               tasks={tasks}
+              goals={goals}
+              me={me}
+              onAdd={openTaskDialog}
+              onCreate={createTask}
+              onUpdate={updateTask}
+              onChange={changeTask}
+              onToggle={toggleTask}
+              onDelete={deleteTask}
+            />
+          )}
+          {page === "home" && (
+            <Home
+              tasks={todayTasks}
               events={events}
               tasksLeft={tasksLeft}
               upcomingEvents={upcomingEvents}
@@ -347,17 +427,29 @@ export default function App() {
         <TaskDialog
           ref={taskDialogRef}
           draft={taskDraft}
+          goals={goals}
           onCreate={createTask}
         />
         <div role="status" aria-live="polite">
           {toast && (
-            <div className="toast">
+            <div className={`toast${toast.undo ? " has-action" : ""}`}>
               {toast.ok ? (
                 <Check aria-hidden="true" size={18} strokeWidth={2.6} />
               ) : (
                 <CircleAlert aria-hidden="true" size={18} />
               )}
               {toast.message}
+              {toast.undo && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    toast.undo?.();
+                    setToast(null);
+                  }}
+                >
+                  <Undo2 aria-hidden="true" size={16} /> Undo
+                </button>
+              )}
             </div>
           )}
         </div>

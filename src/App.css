@@ -100,15 +100,38 @@
   gap: 8px;
   padding: 12px 18px;
   border-radius: 999px;
-  background: var(--text);
-  color: #fff;
+  background: var(--toast-bg);
+  color: var(--toast-fg);
   font-size: 14px;
   font-weight: 600;
   box-shadow: 0 12px 32px rgba(28, 27, 46, 0.24);
   animation: toast-in 200ms var(--ease);
 }
 .toast svg {
-  color: #9fdcbc;
+  color: var(--toast-ok);
+}
+.toast.has-action {
+  padding: 6px 6px 6px 18px;
+}
+.toast button {
+  min-height: 36px;
+  padding: 0 14px;
+  margin-left: 4px;
+  border: none;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.toast button:hover {
+  background: color-mix(in srgb, currentColor 24%, transparent);
+}
+.toast button svg {
+  color: inherit;
 }
 @media (max-width: 900px) {
   .toast {
@@ -187,7 +210,7 @@
 .btn-primary {
   border: none;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-fill);
   box-shadow: 0 4px 12px rgba(91, 91, 214, 0.28);
 }
 .btn-primary:hover {
@@ -199,7 +222,7 @@
   color: var(--text);
 }
 .btn-secondary:hover {
-  background: #f6f5fb;
+  background: var(--hover-soft);
 }
 .btn-primary:active,
 .btn-secondary:active {
@@ -230,7 +253,7 @@
   min-height: 44px;
   padding: 0 14px;
   border-radius: var(--radius-sm);
-  border: 1px solid #e1dfee;
+  border: 1px solid var(--field-line);
   background: var(--surface-sunken);
   font-size: 16px;
 }
@@ -254,7 +277,7 @@
   background: var(--surface);
 }
 .field input[aria-invalid="true"] {
-  border-color: #c2412b;
+  border-color: var(--danger-line);
 }
 .field-hint {
   font-size: 13px;
@@ -266,7 +289,7 @@
   gap: 6px;
   font-size: 13px;
   font-weight: 500;
-  color: #b3361f;
+  color: var(--danger);
 }
 .field-error svg {
   flex-shrink: 0;
@@ -304,7 +327,7 @@
 }
 @media (hover: hover) {
   .icon-btn:hover {
-    background: #ecebf5;
+    background: var(--hover);
   }
 }
 .badge-dot {
@@ -335,11 +358,11 @@
   margin-left: -10px;
 }
 .avatar-ana {
-  background: #e4e2fb;
+  background: var(--ana-bg);
   color: var(--accent-strong);
 }
 .avatar-oliver {
-  background: #ddeee3;
+  background: var(--oliver-bg);
   color: var(--sage-strong);
 }
 
@@ -391,7 +414,7 @@
 }
 @media (hover: hover) {
   .nav-link:hover {
-    background: #ecebf5;
+    background: var(--hover);
   }
 }
 .nav-link.active {
@@ -401,6 +424,13 @@
 }
 .mobile-only {
   display: none;
+}
+/* Moon/sun button: a <button> styled like the nav links around it */
+.theme-toggle {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
 }
 .sidebar-footer {
   margin-top: auto;
@@ -441,7 +471,7 @@
   padding: 4px;
   margin: 0 auto;
   border-radius: 14px;
-  background: #ecebf4;
+  background: var(--seg-bg);
 }
 .segmented button {
   min-height: 40px;
@@ -538,7 +568,7 @@
   stroke-width: 6;
 }
 .ring-track {
-  stroke: #e3efe8;
+  stroke: var(--ring-track);
 }
 .ring-value {
   stroke: var(--sage);
@@ -581,7 +611,7 @@
   );
 }
 .adventure.no-image {
-  background: var(--accent-strong);
+  background: var(--adventure-solid);
 }
 .adventure.no-image::after {
   display: none;
@@ -752,14 +782,14 @@
 .flip-top {
   top: 0;
   border-radius: 14px 14px 0 0;
-  background: linear-gradient(180deg, #f7f6ff 0%, #e9e8fb 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  background: var(--flip-top);
+  box-shadow: inset 0 1px 0 var(--flip-shine);
   transform-origin: bottom;
 }
 .flip-bottom {
   bottom: 0;
   border-radius: 0 0 14px 14px;
-  background: linear-gradient(180deg, #dcdaf6 0%, #e6e5fa 35%, #e2e1f9 100%);
+  background: var(--flip-bottom);
   box-shadow: inset 0 -2px 0 rgba(59, 59, 168, 0.08);
   transform-origin: top;
 }
@@ -862,7 +892,7 @@
   display: grid;
   place-items: center;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-fill);
   box-shadow: 0 4px 12px rgba(91, 91, 214, 0.28);
   transition:
     filter var(--dur) var(--ease),
@@ -909,7 +939,7 @@
   place-items: center;
   border: 2px solid var(--accent);
   background: var(--surface);
-  color: #fff;
+  color: var(--on-fill);
   transition:
     background var(--dur) var(--ease),
     border-color var(--dur) var(--ease);
@@ -970,7 +1000,7 @@
 }
 @media (hover: hover) {
   .day:hover {
-    background: #f6f5fb;
+    background: var(--hover-soft);
   }
 }
 .day.selected {
@@ -993,7 +1023,7 @@
 }
 .day.today .day-num {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-fill);
   font-weight: 700;
 }
 .day-dot {

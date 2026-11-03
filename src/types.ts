@@ -14,13 +14,20 @@ export interface Milestone {
   icon: "car" | "job" | "home" | "plane" | "people";
   status: Status;
 }
+export type TaskStatus = "To do" | "In progress" | "Done";
 export interface Task {
   id: string;
   title: string;
   owner: Person;
-  status: Status;
+  status: TaskStatus;
   done: boolean;
-  time?: string;
+  time?: string; // "6:00 PM" or "Any time", for Home's Today list
+  dueAt?: string; // ISO; local midnight = a day without a time
+  goalId?: string;
+  notes?: string;
+  createdBy?: string; // "you" or the partner's name
+  createdAt: string; // ISO
+  doneAt?: string; // ISO
 }
 export interface CalendarEvent {
   id: string;

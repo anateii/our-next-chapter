@@ -33,6 +33,31 @@
   --amber-soft: #fdf1e2;
   --amber: #9a5b13;
   --alert: #e0603c;
+  --sky-soft: #e7f0fa;
+  --sky: #2f6fb5;
+  --danger: #b3361f;
+  --danger-line: #c2412b;
+  --danger-soft: #fdecea;
+  --danger-strong: #8f2a17;
+
+  /* UI states & parts */
+  --on-fill: #ffffff; /* text/icons on accent, sage and danger fills */
+  --hover: #ecebf5;
+  --hover-soft: #f6f5fb;
+  --seg-bg: #ecebf4;
+  --field-line: #e1dfee;
+  --dash-line: #d9d7ea;
+  --col-bg: #efeef7;
+  --ana-bg: #e4e2fb;
+  --oliver-bg: #ddeee3;
+  --ring-track: #e3efe8;
+  --toast-bg: #1c1b2e;
+  --toast-fg: #ffffff;
+  --toast-ok: #9fdcbc;
+  --adventure-solid: #3b3ba8;
+  --flip-top: linear-gradient(180deg, #f7f6ff 0%, #e9e8fb 100%);
+  --flip-bottom: linear-gradient(180deg, #dcdaf6 0%, #e6e5fa 35%, #e2e1f9 100%);
+  --flip-shine: rgba(255, 255, 255, 0.9);
 
   /* Shape & motion */
   --radius-sm: 12px;
@@ -49,6 +74,61 @@
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Dark theme. index.html sets data-theme before first paint (saved choice,
+   else the system setting); the sidebar's moon/sun button switches it. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #13121d;
+  --surface: #1c1b2a;
+  --surface-sunken: #181724;
+  --line: #2b293d;
+  --line-soft: #252336;
+
+  --text: #edecf7;
+  --text-2: #c9c7dc;
+  --muted: #a7a5bc;
+  --faint: #807e96;
+
+  --accent: #8f8ff2;
+  --accent-strong: #b9b9ff;
+  --accent-soft: #2a2950;
+  --sage: #6cc08f;
+  --sage-strong: #95d8b0;
+  --sage-soft: #1d3327;
+  --blush: #2a2129;
+  --peach-soft: #3a251d;
+  --peach: #f0a07f;
+  --amber-soft: #352917;
+  --amber: #e8b46a;
+  --alert: #f07a58;
+  --sky-soft: #1c2b3d;
+  --sky: #8ab8ec;
+  --danger: #f59a7e;
+  --danger-line: #f07a58;
+  --danger-soft: #3a1f1a;
+  --danger-strong: #f8b4a0;
+
+  --on-fill: #15142a;
+  --hover: #262438;
+  --hover-soft: #211f31;
+  --seg-bg: #232134;
+  --field-line: #34324a;
+  --dash-line: #3a3852;
+  --col-bg: #191826;
+  --ana-bg: #33315e;
+  --oliver-bg: #1f3a2b;
+  --ring-track: #1d3327;
+  --toast-bg: #edecf7;
+  --toast-fg: #15142a;
+  --toast-ok: #2d6044;
+  --flip-top: linear-gradient(180deg, #2c2b55 0%, #25244a 100%);
+  --flip-bottom: linear-gradient(180deg, #1f1e40 0%, #252448 35%, #232246 100%);
+  --flip-shine: rgba(255, 255, 255, 0.06);
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 28px rgba(0, 0, 0, 0.32);
 }
 
 html,

@@ -1,6 +1,7 @@
 import { forwardRef, useState } from "react";
 import { CircleAlert } from "lucide-react";
-import type { Person } from "../types";
+import type { Goal, Person } from "../types";
+import { joinDue } from "../helpers/tasks";
 
 const owners: Person[] = ["Both", "Ana", "Oliver"];
 
@@ -9,18 +10,20 @@ export interface TaskDraft {
   title?: string;
   owner?: Person;
   day: string; // "YYYY-MM-DD", today by default
+  goalId?: string;
 }
 
 export interface NewTask {
   title: string;
   owner: Person;
   dueAt: string | null; // ISO; a day without a time is stored at local midnight
+  goalId: string | null;
 }
 
 const TaskDialog = forwardRef<
   HTMLDialogElement,
-  { draft: TaskDraft; onCreate: (task: NewTask) => void }
->(function TaskDialog({ draft, onCreate }, ref) {
+  { draft: TaskDraft; goals: readonly Goal[]; onCreate: (task: NewTask) => void }
+>(function TaskDialog({ draft, goals, onCreate }, ref) {
   const [error, setError] = useState("");
   // Bumped on every close: the form remounts with the next draft's defaults.
   const [session, setSession] = useState(0);
@@ -36,15 +39,13 @@ const TaskDialog = forwardRef<
       e.currentTarget.querySelector<HTMLInputElement>("#task-title")?.focus();
       return;
     }
-    const day = String(data.get("day") ?? "");
-    const time = String(data.get("time") ?? "");
-    let dueAt: string | null = null;
-    if (day) {
-      const [y, m, d] = day.split("-").map(Number);
-      const [hh, mm] = time ? time.split(":").map(Number) : [0, 0];
-      dueAt = new Date(y, m - 1, d, hh, mm).toISOString();
-    }
-    onCreate({ title, owner: data.get("owner") as Person, dueAt });
+    const dueAt = joinDue(String(data.get("day") ?? ""), String(data.get("time") ?? ""));
+    onCreate({
+      title,
+      owner: data.get("owner") as Person,
+      dueAt,
+      goalId: String(data.get("goal") ?? "") || null,
+    });
     close();
   };
 
@@ -106,6 +107,20 @@ const TaskDialog = forwardRef<
             <input id="task-time" name="time" type="time" />
           </div>
         </div>
+
+        {goals.length > 0 && (
+          <div className="field">
+            <label htmlFor="task-goal">Part of a goal</label>
+            <select id="task-goal" name="goal" defaultValue={draft.goalId ?? ""}>
+              <option value="">No goal</option>
+              {goals.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.title}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className="dialog-actions">
           <button type="button" className="btn-secondary" onClick={close}>

@@ -107,7 +107,7 @@
 }
 @media (hover: hover) {
   .ob-choice:hover {
-    border-color: #dcdaf6;
+    border-color: color-mix(in srgb, var(--accent) 25%, var(--line));
     box-shadow: var(--shadow-card);
   }
 }
@@ -188,7 +188,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  color: #b3361f;
+  color: var(--danger);
   font-size: 15px;
   font-weight: 500;
 }
@@ -199,7 +199,7 @@
   letter-spacing: 0.2em;
 }
 .ob-code-input::placeholder {
-  color: #b9b7cb;
+  color: var(--faint);
   font-weight: 500;
 }
 
@@ -230,7 +230,7 @@
 }
 @media (hover: hover) {
   .ob-skip:hover {
-    background: #ecebf5;
+    background: var(--hover);
   }
 }
 .ob-alert {
@@ -239,8 +239,8 @@
   gap: 8px;
   padding: 12px 14px;
   border-radius: var(--radius-sm);
-  background: #fdecea;
-  color: #8f2a17;
+  background: var(--danger-soft);
+  color: var(--danger-strong);
   font-size: 14px;
   font-weight: 500;
 }
