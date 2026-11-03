@@ -75,7 +75,7 @@ export const initialLifeGoals: Goal[] = [
     stepsDone: 3,
     stepsTotal: 8,
     nextStep: "Apply for suitable remote roles",
-    owner: "Ana",
+    owner: "owner",
   },
   {
     id: "lg4",
@@ -102,7 +102,7 @@ export const initialLifeGoals: Goal[] = [
     stepsDone: 0,
     stepsTotal: 5,
     nextStep: "Discuss Oliver's joining window",
-    owner: "Oliver",
+    owner: "partner",
   },
 ];
 

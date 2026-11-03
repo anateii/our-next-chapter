@@ -12,6 +12,7 @@ import {
 import { UserButton } from "@clerk/react";
 import Avatars from "./Avatars";
 import { useTheme } from "../helpers/theme";
+import { usePeople } from "../helpers/people";
 
 // On small screens the nav becomes a bottom bar, which holds at most five
 // items; "secondary" ones move to the top app bar instead.
@@ -26,6 +27,7 @@ const items = [
 
 export default function Sidebar({ active = "Home" }: Readonly<{ active?: string }>) {
   const { theme, toggle } = useTheme();
+  const { couple, partner } = usePeople();
   const dark = theme === "dark";
   return (
     <aside className="sidebar">
@@ -60,8 +62,8 @@ export default function Sidebar({ active = "Home" }: Readonly<{ active?: string 
           <Smile aria-hidden="true" size={20} /> <span className="nav-label">Our Space</span>
         </a>
         <div className="couple">
-          <Avatars owner="Both" />
-          <span className="couple-name">Ana &amp; Oliver</span>
+          <Avatars owner={partner ? "Both" : "owner"} />
+          <span className="couple-name">{couple}</span>
           <span className="couple-user">
             <UserButton />
           </span>

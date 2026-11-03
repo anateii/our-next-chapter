@@ -28,21 +28,17 @@ export interface ApiMember {
 const toCategory = (c: ApiGoal["category"]) =>
   (c[0].toUpperCase() + c.slice(1)) as GoalCategory;
 
-// Clerk user id -> "Ana" | "Oliver" | "Both"
+// Clerk user id -> "owner" | "partner" (null, or someone not in the space: "Both")
 export const toPerson = (
   userId: string | null,
   members: readonly ApiMember[],
-): Person => {
-  if (!userId) return "Both";
-  const name = members.find((m) => m.userId === userId)?.displayName;
-  return name === "Ana" || name === "Oliver" ? name : "Both";
-};
+): Person => members.find((m) => m.userId === userId)?.role ?? "Both";
 
-// "Ana" | "Oliver" | "Both" -> Clerk user id (null = both of you)
+// "owner" | "partner" | "Both" -> Clerk user id (null = both of you)
 export const toUserId = (person: Person, members: readonly ApiMember[]) =>
   person === "Both"
     ? null
-    : (members.find((m) => m.displayName === person)?.userId ?? null);
+    : (members.find((m) => m.role === person)?.userId ?? null);
 
 // API goal -> the Goal type the UI already uses.
 // null becomes undefined because the UI's optional fields are `field?: string`.

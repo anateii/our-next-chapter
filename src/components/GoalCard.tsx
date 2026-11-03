@@ -1,6 +1,13 @@
 import { Check, Star } from "lucide-react";
 import type { Goal } from "../types";
-import { categoryIcons, goalProgress, goalStatus, parseDay } from "../goals";
+import {
+  categoryIcons,
+  goalProgress,
+  goalStatus,
+  parseDay,
+  type GoalSteps,
+} from "../goals";
+import { usePeople } from "../helpers/people";
 import Avatars from "./Avatars";
 import GoalMenu from "./GoalMenu";
 
@@ -13,17 +20,21 @@ const byDate = new Intl.DateTimeFormat(undefined, {
 
 export default function GoalCard({
   goal,
+  steps,
   onEdit,
   onFeature,
   onComplete,
 }: Readonly<{
   goal: Goal;
+  steps?: GoalSteps;
   onEdit: (goal: Goal) => void;
   onFeature: (id: string) => void;
   onComplete: (id: string) => void;
 }>) {
-  const status = goalStatus(goal);
-  const progress = goalProgress(goal);
+  const { name } = usePeople();
+  const status = goalStatus(goal, steps);
+  const progress = goalProgress(goal, steps);
+  const next = steps?.open[0];
   const Icon = categoryIcons[goal.category];
 
   return (
@@ -51,7 +62,7 @@ export default function GoalCard({
           <GoalMenu
             label={`More options for ${goal.title}`}
             actions={[
-              { label: "Edit goal", onSelect: () => onEdit(goal) },
+              { label: "Edit goal and steps", onSelect: () => onEdit(goal) },
               {
                 label: goal.featured ? "Featured on Home" : "Feature on Home",
                 onSelect: () => onFeature(goal.id),
@@ -60,7 +71,8 @@ export default function GoalCard({
               {
                 label: "Mark as completed",
                 onSelect: () => onComplete(goal.id),
-                // A goal with no steps completes as 1 of 1 (see PATCH /api/goals).
+                // Finishes the open steps; a goal with none completes as
+                // 1 of 1 (see PATCH /api/goals).
                 disabled: status === "Completed",
               },
             ]}
@@ -90,10 +102,27 @@ export default function GoalCard({
           </div>
           <span>{progress}%</span>
         </div>
+        {steps?.total ? (
+          <p className="goal-steps-line">
+            {steps.done} of {steps.total} steps done
+            {next && (
+              <>
+                {" · Next: "}
+                <span className="goal-next-step">{next.title}</span>
+              </>
+            )}
+          </p>
+        ) : (
+          <p className="goal-steps-line">
+            <button type="button" className="link-btn" onClick={() => onEdit(goal)}>
+              Add the first step
+            </button>
+          </p>
+        )}
         <div className="goal-next">
           <Avatars owner={goal.owner} />
           <p>
-            <span>{goal.owner === "Both" ? "Both of us" : `${goal.owner} is leading`}</span>
+            <span>{goal.owner === "Both" ? name("Both") : `${name(goal.owner)} is leading`}</span>
           </p>
         </div>
       </div>

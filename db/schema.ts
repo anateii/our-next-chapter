@@ -60,6 +60,8 @@ export const members = pgTable(
     clerkUserId: text("clerk_user_id").notNull(),
     displayName: text("display_name"),
     role: roleEnum("role").notNull(),
+    // When they last opened Recent activity; newer entries count as new.
+    lastSeenActivityAt: timestamp("last_seen_activity_at", { withTimezone: true }),
     createdAt: createdAt(),
   },
   (t) => [
@@ -156,6 +158,26 @@ export const goals = pgTable(
       .on(t.spaceId)
       .where(sql`${t.featured}`),
   ],
+);
+
+// What each of you did, for Recent activity on Home. Entries keep the title
+// as it was then, so they still read right after a rename or a delete.
+export const activity = pgTable(
+  "activity",
+  {
+    id: id(),
+    spaceId: spaceId(),
+    actorUserId: text("actor_user_id").notNull(), // Clerk user id
+    // 'task_added' | 'step_added' | 'task_done' | 'goal_added' | 'goal_completed'
+    // | 'goal_photo' | 'event_added'
+    kind: text("kind").notNull(),
+    title: text("title").notNull(),
+    taskId: uuid("task_id"), // no foreign key: the entry outlives a deleted task
+    goalId: uuid("goal_id").references(() => goals.id, { onDelete: "set null" }),
+    whenAt: timestamp("when_at", { withTimezone: true }), // a new task's day or event's start
+    createdAt: createdAt(),
+  },
+  (t) => [index("activity_space_created_idx").on(t.spaceId, t.createdAt)],
 );
 
 export const decisions = pgTable("decisions", {

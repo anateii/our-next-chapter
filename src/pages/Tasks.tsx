@@ -15,8 +15,8 @@ import {
   type TaskEdits,
   type TaskGroup,
 } from "../helpers/tasks";
-import type { NewTask } from "../components/TaskDialog";
 import type { MenuAction } from "../components/GoalMenu";
+import { usePeople } from "../helpers/people";
 import Avatars from "../components/Avatars";
 import TaskRow from "../components/TaskRow";
 import TaskBoard from "../components/TaskBoard";
@@ -40,7 +40,6 @@ export default function Tasks({
   goals,
   me,
   onAdd,
-  onCreate,
   onUpdate,
   onChange,
   onToggle,
@@ -50,16 +49,15 @@ export default function Tasks({
   goals: readonly Goal[];
   me: Person; // "Both" when we can't tell which partner is signed in
   onAdd: () => void;
-  onCreate: (t: NewTask) => Promise<Task | undefined>;
   onUpdate: (id: string, edits: TaskEdits) => Promise<boolean>; // silent, for the details panel
   onChange: (id: string, edits: TaskEdits, message: string) => void; // with an Undo toast
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
 }>) {
   const [who, setWho] = useState<Who>("all");
-  const [view, setView] = useState<"list" | "board">("list");
+  // Board first, like the grid on Our Goals.
+  const [view, setView] = useState<"board" | "list">("board");
   const [doneOpen, setDoneOpen] = useState(false);
-  const [flashId, setFlashId] = useState<string>();
   const [openId, setOpenId] = useState<string | null>(null);
   const detailsRef = useRef<HTMLDialogElement>(null);
 
@@ -89,11 +87,14 @@ export default function Tasks({
     return () => document.removeEventListener("keydown", onKey);
   }, [onAdd]);
 
-  // Filters: everyone, then each partner ("Mine" for the signed-in one), then shared.
+  // Filters: all, then each partner ("Mine" for the signed-in one), then the
+  // tasks you share ("Both of us" as the owner).
+  const { name, partner } = usePeople();
+  const people: Person[] = partner ? ["owner", "partner"] : ["owner"];
   const whoOptions: { key: Who; label: string }[] = [
-    { key: "all", label: "Everyone" },
-    ...(["Ana", "Oliver"] as const).map((p) => ({ key: p, label: p === me ? "Mine" : p })),
-    { key: "Both", label: "Both of us" },
+    { key: "all", label: "All" },
+    ...people.map((p) => ({ key: p, label: p === me ? "Mine" : name(p) })),
+    { key: "Both", label: "Shared" },
   ];
   const visible = who === "all" ? tasks : tasks.filter((t) => t.owner === who);
   const openCount = (w: Who) =>
@@ -138,27 +139,6 @@ export default function Tasks({
     ];
   };
 
-  // Quick add: straight into Today.
-  const [quickError, setQuickError] = useState(false);
-  const quickAdd = (e: React.SubmitEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const data = new FormData(form);
-    const title = String(data.get("title") ?? "").trim();
-    if (!title) {
-      setQuickError(true);
-      form.querySelector<HTMLInputElement>("#quick-title")?.focus();
-      return;
-    }
-    setQuickError(false);
-    const owner = data.get("owner") as Person;
-    form.querySelector<HTMLInputElement>("#quick-title")!.value = "";
-    if (who !== "all" && who !== owner) setWho("all");
-    onCreate({ title, owner, dueAt: joinDue(localDay(0), ""), goalId: null }).then(
-      (t) => t && setFlashId(t.id),
-    );
-  };
-
   const rows = (list: Task[]) => (
     <ul className="tasks">
       {list.map((t) => (
@@ -166,7 +146,6 @@ export default function Tasks({
           key={t.id}
           task={t}
           goal={goalOf(t)}
-          flash={t.id === flashId}
           actions={actionsFor(t)}
           onToggle={onToggle}
           onOpen={openDetails}
@@ -175,9 +154,12 @@ export default function Tasks({
     </ul>
   );
 
-  const whoLabel = whoOptions.find((o) => o.key === who)?.label ?? "";
   let emptyTitle = "No tasks yet";
-  if (tasks.length) emptyTitle = who === me ? "Nothing on your plate" : `Nothing for ${whoLabel.toLowerCase() === "both of us" ? "both of you" : whoLabel}`;
+  if (tasks.length) {
+    if (who === me) emptyTitle = "Nothing on your plate";
+    else if (who === "Both") emptyTitle = "Nothing shared right now";
+    else if (who !== "all") emptyTitle = `Nothing for ${name(who)}`;
+  }
 
   return (
     <>
@@ -190,7 +172,6 @@ export default function Tasks({
         </div>
         <button type="button" className="btn-primary" aria-keyshortcuts="n" onClick={onAdd}>
           <Plus aria-hidden="true" size={18} strokeWidth={2.4} /> New task
-          <kbd aria-hidden="true">N</kbd>
         </button>
       </header>
 
@@ -246,20 +227,15 @@ export default function Tasks({
               onClick={() => setWho(o.key)}
             >
               {o.key !== "all" && <Avatars owner={o.key} />}
-              {o.label} <span className="seg-count">{openCount(o.key)}</span>
+              {/* One span, so the count shares the label's line (the button
+                  centres each flex item on its own, which lifts the smaller count) */}
+              <span>
+                {o.label} <span className="seg-count">{openCount(o.key)}</span>
+              </span>
             </button>
           ))}
         </div>
         <div className="view-toggle" aria-label="Layout">
-          <button
-            type="button"
-            className="icon-btn"
-            aria-label="List view"
-            aria-pressed={view === "list"}
-            onClick={() => setView("list")}
-          >
-            <List aria-hidden="true" size={18} />
-          </button>
           <button
             type="button"
             className="icon-btn"
@@ -269,42 +245,16 @@ export default function Tasks({
           >
             <LayoutGrid aria-hidden="true" size={18} />
           </button>
-        </div>
-      </div>
-
-      <div className="quick-add-wrap">
-        <form className="card quick-add" onSubmit={quickAdd} noValidate>
-          <Plus aria-hidden="true" size={20} />
-          <label htmlFor="quick-title" className="sr-only">
-            Add a task for today
-          </label>
-          <input
-            id="quick-title"
-            name="title"
-            maxLength={200}
-            autoComplete="off"
-            placeholder="Add a task for today…"
-            aria-invalid={quickError || undefined}
-            aria-describedby="quick-hint"
-            onChange={() => quickError && setQuickError(false)}
-          />
-          <label htmlFor="quick-owner" className="sr-only">
-            Who's doing it
-          </label>
-          <select id="quick-owner" name="owner" defaultValue={who === "all" ? "Both" : who}>
-            <option value="Both">Both of us</option>
-            <option value="Ana">Ana</option>
-            <option value="Oliver">Oliver</option>
-          </select>
-          <button type="submit" className="btn-primary">
-            Add
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label="List view"
+            aria-pressed={view === "list"}
+            onClick={() => setView("list")}
+          >
+            <List aria-hidden="true" size={18} />
           </button>
-        </form>
-        <p id="quick-hint" className={quickError ? "field-error" : "field-hint"}>
-          {quickError
-            ? "Type what needs doing first, e.g. “Book the theory test”."
-            : "Press Enter to add it to Today. Open it afterwards to set a day, goal or notes."}
-        </p>
+        </div>
       </div>
 
       <p className="sr-only" aria-live="polite">
@@ -321,7 +271,7 @@ export default function Tasks({
           </p>
           {tasks.length > 0 ? (
             <button type="button" className="btn-secondary" onClick={() => setWho("all")}>
-              Show everyone's tasks
+              Show all tasks
             </button>
           ) : (
             <button type="button" className="btn-primary" onClick={onAdd}>
@@ -336,7 +286,6 @@ export default function Tasks({
           tasks={visible}
           goalOf={goalOf}
           actionsFor={actionsFor}
-          flashId={flashId}
           onOpen={openDetails}
           onMove={(id, s) => {
             const t = tasks.find((x) => x.id === id);

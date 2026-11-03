@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { Plus, LayoutGrid, List } from "lucide-react";
 import type { Goal, GoalStatus } from "../types";
-import { goalStatus } from "../goals";
+import { goalStatus, type GoalSteps } from "../goals";
 import GoalCard from "../components/GoalCard";
 import NewGoalDialog, { type GoalEdits } from "../components/NewGoalDialog";
 import "./Goals.css";
@@ -20,13 +20,19 @@ const emptyTitle: Record<Filter, string> = {
 
 export default function Goals({
   goals,
+  steps,
   onCreate,
+  onAddStep,
+  onToggleStep,
   onEdit,
   onFeature,
   onComplete,
 }: Readonly<{
   goals: readonly Goal[];
+  steps: ReadonlyMap<string, GoalSteps>; // by goal id
   onCreate: (g: Omit<Goal, "id">) => void;
+  onAddStep: (goal: Goal, title: string) => Promise<unknown>;
+  onToggleStep: (taskId: string) => void;
   onEdit: (id: string, edits: GoalEdits) => void;
   onFeature: (id: string) => void;
   onComplete: (id: string) => void;
@@ -46,9 +52,11 @@ export default function Goals({
   const count = (f: Filter) =>
     f === "All"
       ? goals.length
-      : goals.filter((g) => goalStatus(g) === f).length;
+      : goals.filter((g) => goalStatus(g, steps.get(g.id)) === f).length;
   const visible =
-    filter === "All" ? goals : goals.filter((g) => goalStatus(g) === filter);
+    filter === "All"
+      ? goals
+      : goals.filter((g) => goalStatus(g, steps.get(g.id)) === filter);
 
   return (
     <>
@@ -114,6 +122,7 @@ export default function Goals({
             <GoalCard
               key={g.id}
               goal={g}
+              steps={steps.get(g.id)}
               onEdit={openDialog}
               onFeature={onFeature}
               onComplete={onComplete}
@@ -155,8 +164,11 @@ export default function Goals({
       <NewGoalDialog
         ref={dialogRef}
         goal={editing}
+        steps={editing ? steps.get(editing.id) : undefined}
         onCreate={onCreate}
         onEdit={onEdit}
+        onAddStep={onAddStep}
+        onToggleStep={onToggleStep}
       />
     </>
   );

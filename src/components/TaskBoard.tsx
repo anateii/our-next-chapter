@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Circle, CircleCheck, CircleDot, GripVertical } from "lucide-react";
 import type { Goal, Task, TaskStatus } from "../types";
 import { byDoneAt, byDue, taskStatuses } from "../helpers/tasks";
+import { usePeople } from "../helpers/people";
 import Avatars from "./Avatars";
 import GoalMenu, { type MenuAction } from "./GoalMenu";
 import TaskMeta from "./TaskMeta";
@@ -18,17 +19,16 @@ export default function TaskBoard({
   tasks,
   goalOf,
   actionsFor,
-  flashId,
   onOpen,
   onMove,
 }: Readonly<{
   tasks: readonly Task[];
   goalOf: (t: Task) => Goal | undefined;
   actionsFor: (t: Task) => MenuAction[];
-  flashId?: string;
   onOpen: (id: string) => void;
   onMove: (id: string, status: TaskStatus) => void;
 }>) {
+  const { name } = usePeople();
   const [dragId, setDragId] = useState<string | null>(null);
   const [over, setOver] = useState<TaskStatus | null>(null);
 
@@ -82,7 +82,6 @@ export default function TaskBoard({
                     "card board-card",
                     t.done && "done",
                     t.id === dragId && "dragging",
-                    t.id === flashId && "flash",
                   ]
                     .filter(Boolean)
                     .join(" ")}
@@ -108,7 +107,7 @@ export default function TaskBoard({
                   </button>
                   <div className="board-foot">
                     <Avatars owner={t.owner} />
-                    <span>{t.owner === "Both" ? "Both of us" : t.owner}</span>
+                    <span>{name(t.owner)}</span>
                     <GoalMenu label={`More options for ${t.title}`} actions={actionsFor(t)} />
                   </div>
                 </article>

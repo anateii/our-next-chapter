@@ -310,7 +310,7 @@ export default function Onboarding({
             maxLength={60}
             value={spaceName}
             onChange={(e) => setSpaceName(e.target.value)}
-            placeholder={trimmedName ? `${trimmedName} & partner` : "Ana & Oliver"}
+            placeholder={trimmedName ? `${trimmedName} & partner` : "Sam & Alex"}
             aria-describedby="ob-space-hint"
           />
           <p id="ob-space-hint" className="field-hint">

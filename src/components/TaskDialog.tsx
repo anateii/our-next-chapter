@@ -1,9 +1,9 @@
 import { forwardRef, useState } from "react";
 import { CircleAlert } from "lucide-react";
 import type { Goal, Person } from "../types";
+import { usePeople } from "../helpers/people";
 import { joinDue } from "../helpers/tasks";
 
-const owners: Person[] = ["Both", "Ana", "Oliver"];
 
 // What the dialog opens with.
 export interface TaskDraft {
@@ -24,6 +24,7 @@ const TaskDialog = forwardRef<
   HTMLDialogElement,
   { draft: TaskDraft; goals: readonly Goal[]; onCreate: (task: NewTask) => void }
 >(function TaskDialog({ draft, goals, onCreate }, ref) {
+  const { choices, name } = usePeople();
   const [error, setError] = useState("");
   // Bumped on every close: the form remounts with the next draft's defaults.
   const [session, setSession] = useState(0);
@@ -39,7 +40,7 @@ const TaskDialog = forwardRef<
       e.currentTarget.querySelector<HTMLInputElement>("#task-title")?.focus();
       return;
     }
-    const dueAt = joinDue(String(data.get("day") ?? ""), String(data.get("time") ?? ""));
+    const dueAt = joinDue(String(data.get("day") ?? ""), "");
     onCreate({
       title,
       owner: data.get("owner") as Person,
@@ -89,23 +90,17 @@ const TaskDialog = forwardRef<
         <div className="field">
           <label htmlFor="task-owner">Who's doing it</label>
           <select id="task-owner" name="owner" defaultValue={draft.owner ?? "Both"}>
-            {owners.map((o) => (
+            {choices.map((o) => (
               <option key={o} value={o}>
-                {o === "Both" ? "Both of us" : o}
+                {name(o)}
               </option>
             ))}
           </select>
         </div>
 
-        <div className="field-row">
-          <div className="field">
-            <label htmlFor="task-day">Day</label>
-            <input id="task-day" name="day" type="date" defaultValue={draft.day} />
-          </div>
-          <div className="field">
-            <label htmlFor="task-time">Time</label>
-            <input id="task-time" name="time" type="time" />
-          </div>
+        <div className="field">
+          <label htmlFor="task-day">Day</label>
+          <input id="task-day" name="day" type="date" defaultValue={draft.day} />
         </div>
 
         {goals.length > 0 && (

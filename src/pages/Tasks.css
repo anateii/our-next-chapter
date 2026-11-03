@@ -2,19 +2,6 @@
    .goals-empty and .menu from Goals.css, and .stat, .panel, .check from App.css.
    App.css loads after this file, so overrides of its rules use two classes. */
 
-.page-head kbd {
-  min-width: 20px;
-  height: 20px;
-  padding: 0 5px;
-  border-radius: 6px;
-  display: inline-grid;
-  place-items: center;
-  background: color-mix(in srgb, currentColor 22%, transparent);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-}
-
 /* Summary */
 .stats.tasks-stats {
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -40,63 +27,6 @@
   height: 22px;
   font-size: 10px;
   border-width: 1.5px;
-}
-
-/* Quick add */
-.quick-add-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.quick-add {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 8px 8px 16px;
-  transition:
-    border-color var(--dur) var(--ease),
-    box-shadow var(--dur) var(--ease);
-}
-.quick-add:focus-within {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 4px var(--accent-soft);
-}
-.quick-add > svg {
-  flex-shrink: 0;
-  color: var(--accent);
-}
-.quick-add input {
-  flex: 1;
-  min-width: 0;
-  min-height: 44px;
-  border: none;
-  background: transparent;
-  font-size: 16px;
-  outline: none;
-}
-.quick-add input::placeholder {
-  color: var(--faint);
-}
-.quick-add select {
-  appearance: none;
-  min-height: 40px;
-  padding: 0 32px 0 12px;
-  border-radius: 10px;
-  border: 1px solid var(--line);
-  background: var(--surface-sunken)
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235e5c72' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
-    no-repeat right 10px center;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-2);
-  cursor: pointer;
-}
-.quick-add .btn-primary {
-  min-height: 40px;
-  padding: 0 16px;
-}
-.quick-add-wrap > p {
-  padding-left: 4px;
 }
 
 /* List groups */
@@ -165,15 +95,6 @@
 }
 .task:last-child {
   border-bottom: none;
-}
-.flash {
-  animation: task-flash 1.4s var(--ease);
-}
-@keyframes task-flash {
-  0%,
-  30% {
-    background: var(--accent-soft);
-  }
 }
 /* The tick is always rendered so it can animate in */
 .task .check svg {
@@ -676,16 +597,6 @@
   }
   .stat-of {
     font-size: 13px;
-  }
-  .quick-add {
-    flex-wrap: wrap;
-    padding: 8px 8px 8px 14px;
-  }
-  .quick-add input {
-    flex-basis: calc(100% - 40px);
-  }
-  .quick-add select {
-    flex: 1;
   }
   .panel.task-group {
     padding: 14px 16px;

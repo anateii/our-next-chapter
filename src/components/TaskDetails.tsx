@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, useRef, useState } from "react";
 import { Check, Circle, CircleAlert, CircleCheck, CircleDot, SquareCheck, Trash, X } from "lucide-react";
-import type { Goal, Person, Task, TaskStatus } from "../types";
+import type { Goal, Task, TaskStatus } from "../types";
+import { usePeople } from "../helpers/people";
 import {
   addedAgo,
   daysToWeekend,
@@ -14,7 +15,6 @@ import {
 } from "../helpers/tasks";
 import Avatars from "./Avatars";
 
-const owners: Person[] = ["Both", "Ana", "Oliver"];
 const statusIcons = { "To do": Circle, "In progress": CircleDot, Done: CircleCheck };
 
 type Props = {
@@ -73,6 +73,7 @@ function DetailsBody({
   onDelete: (id: string) => void;
   close: () => void;
 }>) {
+  const { choices, name } = usePeople();
   const [title, setTitle] = useState(task.title);
   const [notes, setNotes] = useState(task.notes ?? "");
   const [confirming, setConfirming] = useState(false);
@@ -190,18 +191,18 @@ function DetailsBody({
         <fieldset className="details-field">
           <legend className="field-label">Who's doing it</legend>
           <div className="choice">
-            {owners.map((o) => (
+            {choices.map((o) => (
               <label key={o}>
                 <input
                   type="radio"
                   name="details-owner"
                   value={o}
                   checked={task.owner === o}
-                  onChange={() => save({ owner: o }, o === "Both" ? "Now shared" : `Now with ${o}`)}
+                  onChange={() => save({ owner: o }, o === "Both" ? "Now shared" : `Now with ${name(o)}`)}
                 />
                 <span>
                   <Avatars owner={o} />
-                  {o === "Both" ? "Both of us" : o}
+                  {name(o)}
                 </span>
               </label>
             ))}

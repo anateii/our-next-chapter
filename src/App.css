@@ -330,16 +330,6 @@
     background: var(--hover);
   }
 }
-.badge-dot {
-  position: absolute;
-  top: 10px;
-  right: 11px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--alert);
-  border: 2px solid var(--bg);
-}
 .avatars {
   display: flex;
   flex-shrink: 0;
@@ -357,12 +347,12 @@
 .avatar + .avatar {
   margin-left: -10px;
 }
-.avatar-ana {
-  background: var(--ana-bg);
+.avatar-owner {
+  background: var(--owner-bg);
   color: var(--accent-strong);
 }
-.avatar-oliver {
-  background: var(--oliver-bg);
+.avatar-partner {
+  background: var(--partner-bg);
   color: var(--sage-strong);
 }
 
@@ -491,11 +481,6 @@
   color: var(--text);
   font-weight: 600;
   box-shadow: 0 1px 3px rgba(28, 27, 46, 0.1);
-}
-.topbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
 }
 .greeting {
   display: flex;
@@ -1215,9 +1200,6 @@
     font-size: 13px;
     white-space: nowrap;
   }
-  .topbar-actions {
-    margin-left: auto;
-  }
   .greeting p {
     font-size: 15px;
   }
@@ -1282,4 +1264,169 @@
   .day {
     min-height: 64px;
   }
+}
+
+/* Recent activity (Home) */
+/* Red dot on the tab while the partner has done something new */
+.seg-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: var(--alert);
+  vertical-align: middle;
+}
+.activity-range {
+  color: var(--faint);
+  font-size: 13px;
+}
+.activity-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.activity-summary {
+  color: var(--muted);
+  font-size: 14px;
+}
+.activity-summary b {
+  color: var(--text);
+}
+.mini-seg {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--seg-bg);
+}
+.mini-seg button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+.mini-seg button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+}
+.activity-day {
+  padding: 14px 0 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.activity ul {
+  list-style: none;
+}
+.activity-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  color: var(--alert);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.activity-divider::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid currentColor;
+  opacity: 0.4;
+}
+.activity-divider.seen {
+  color: var(--faint);
+}
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.activity li:last-child .activity-item {
+  border-bottom: none;
+}
+.activity-item.win {
+  margin: 4px 0;
+  padding: 12px;
+  border-bottom: none;
+  border-radius: var(--radius-sm);
+  background: var(--sage-soft);
+}
+.activity-who {
+  position: relative;
+  flex-shrink: 0;
+}
+.activity-kind {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--surface);
+  color: var(--on-fill);
+}
+.tone-accent {
+  background: var(--accent);
+}
+.tone-sage {
+  background: var(--sage);
+}
+.tone-peach {
+  background: var(--peach);
+}
+.tone-sky {
+  background: var(--sky);
+}
+.activity-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-wrap: anywhere;
+}
+.activity-sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.activity-sub .chip-goal {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+.activity-time {
+  flex-shrink: 0;
+  color: var(--faint);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.activity-item.is-new .activity-time {
+  color: var(--alert);
+  font-weight: 600;
 }

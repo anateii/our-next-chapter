@@ -10,14 +10,12 @@ const reducedMotion = () => globalThis.matchMedia("(prefers-reduced-motion: redu
 export default function TaskRow({
   task,
   goal,
-  flash,
   actions,
   onToggle,
   onOpen,
 }: Readonly<{
   task: Task;
   goal?: Goal;
-  flash?: boolean;
   actions: MenuAction[];
   onToggle: (id: string) => void;
   onOpen: (id: string) => void;
@@ -33,7 +31,7 @@ export default function TaskRow({
 
   return (
     <li
-      className={["task", done && "done", completing && "completing", flash && "flash"]
+      className={["task", done && "done", completing && "completing"]
         .filter(Boolean)
         .join(" ")}
     >

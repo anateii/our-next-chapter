@@ -5,6 +5,7 @@ import { db } from "../db/client.js";
 import { goals, goalCategoryEnum } from "../db/schema.js";
 import { getUserId, json } from "./_lib/auth.js";
 import { getMembership, isMember } from "./_lib/space.js";
+import { logActivity } from "./_lib/activity.js";
 
 type Category = (typeof goalCategoryEnum.enumValues)[number];
 const isCategory = (v: unknown): v is Category =>
@@ -111,6 +112,13 @@ export async function POST(req: Request) {
       imageUrl: image.path,
     })
     .returning();
+  await logActivity({
+    spaceId: me.spaceId,
+    actorUserId: me.clerkUserId,
+    kind: "goal_added",
+    title,
+    goalId: goal.id,
+  });
   return json({ goal: toClient(goal) }, 201);
 }
 
@@ -196,6 +204,10 @@ export async function PATCH(req: Request) {
   const oldPhoto = existing.imageUrl;
   if ("imageUrl" in changes && oldPhoto !== goal.imageUrl && isSpacePhoto(oldPhoto, me.spaceId))
     await del(oldPhoto).catch((err) => console.error("Deleting old photo failed:", err));
+
+  const log = { spaceId: me.spaceId, actorUserId: me.clerkUserId, title: goal.name, goalId: goal.id };
+  if (body.completed === true) await logActivity({ ...log, kind: "goal_completed" });
+  if (goal.imageUrl && goal.imageUrl !== oldPhoto) await logActivity({ ...log, kind: "goal_photo" });
 
   return json({ goal: toClient(goal) });
 }

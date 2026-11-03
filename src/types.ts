@@ -1,4 +1,6 @@
-export type Person = "Ana" | "Oliver" | "Both";
+// Who something is for, by place in the space: "owner" started it, "partner"
+// joined it. Their names come from usePeople() (helpers/people.ts).
+export type Person = "owner" | "partner" | "Both";
 export type Status =
   | "Up next"
   | "In progress"

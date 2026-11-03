@@ -1,8 +1,9 @@
-import { and, asc, eq, gte, or } from "drizzle-orm";
+import { and, asc, count, eq, gte, isNotNull, lt, or } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { goals, tasks } from "../db/schema.js";
+import { activity, goals, tasks } from "../db/schema.js";
 import { getUserId, json } from "./_lib/auth.js";
 import { dateParam, getMembership, isMember } from "./_lib/space.js";
+import { logActivity, unlogTaskDone } from "./_lib/activity.js";
 
 const STATUSES = ["To do", "In progress", "Done"] as const;
 type TaskStatus = (typeof STATUSES)[number];
@@ -67,7 +68,24 @@ export async function GET(req: Request) {
       ),
     )
     .orderBy(asc(tasks.dueAt), asc(tasks.createdAt));
-  return json({ tasks: rows.map(toClient) });
+  // Linked tasks finished before `doneSince` aren't sent, but they still count
+  // toward their goal's progress: { goalId: how many }.
+  const older = await db
+    .select({ goalId: tasks.goalId, n: count() })
+    .from(tasks)
+    .where(
+      and(
+        eq(tasks.spaceId, me.spaceId),
+        eq(tasks.done, true),
+        lt(tasks.doneAt, doneSince),
+        isNotNull(tasks.goalId),
+      ),
+    )
+    .groupBy(tasks.goalId);
+  return json({
+    tasks: rows.map(toClient),
+    olderDone: Object.fromEntries(older.map((r) => [r.goalId, r.n])),
+  });
 }
 
 // Create a task:
@@ -114,7 +132,42 @@ export async function POST(req: Request) {
       createdBy: userId,
     })
     .returning();
+  await logActivity({
+    spaceId: me.spaceId,
+    actorUserId: userId,
+    kind: goalId ? "step_added" : "task_added",
+    title,
+    taskId: task.id,
+    goalId,
+    whenAt: dueAt,
+  });
   return json({ task: toClient(task) }, 201);
+}
+
+// A task was just ticked off: log it, and log its goal as completed if that
+// was the goal's last open step.
+async function logDone(task: typeof tasks.$inferSelect, actorUserId: string) {
+  const base = { spaceId: task.spaceId, actorUserId, goalId: task.goalId };
+  await logActivity({ ...base, kind: "task_done", title: task.title, taskId: task.id });
+  if (!task.goalId) return;
+  const [open] = await db
+    .select({ n: count() })
+    .from(tasks)
+    .where(and(eq(tasks.goalId, task.goalId), eq(tasks.done, false)));
+  if (open.n > 0) return;
+  // "Mark as completed" finishes several steps at once; log the goal once.
+  const [already] = await db
+    .select({ id: activity.id })
+    .from(activity)
+    .where(
+      and(
+        eq(activity.goalId, task.goalId),
+        eq(activity.kind, "goal_completed"),
+        gte(activity.createdAt, new Date(Date.now() - 10 * 60 * 1000)),
+      ),
+    );
+  const [goal] = await db.select({ name: goals.name }).from(goals).where(eq(goals.id, task.goalId));
+  if (goal && !already) await logActivity({ ...base, kind: "goal_completed", title: goal.name });
 }
 
 type TaskChanges = Partial<typeof tasks.$inferInsert>;
@@ -165,12 +218,13 @@ async function parseChanges(
 //   goalId?: string | null, notes?: string | null }
 // `done` and `status` stay in sync: done = (status === 'Done').
 export async function PATCH(req: Request) {
-  const { me, error } = await auth(req);
+  const { me, userId, error } = await auth(req);
   if (error) return error;
 
   const body = await req.json().catch(() => null);
   if (typeof body?.id !== "string") return json({ error: "Send { id, ... }" }, 400);
   const mine = and(eq(tasks.id, body.id), eq(tasks.spaceId, me.spaceId));
+  let doneChanged: boolean | undefined; // set when the task is ticked or unticked
 
   // Validate everything before writing anything.
   const parsed = await parseChanges(body, me.spaceId);
@@ -183,13 +237,21 @@ export async function PATCH(req: Request) {
     const done = status === "Done";
     Object.assign(changes, { status, done });
     // Keep the original time when a done task is saved as done again.
-    if (done !== existing.done) changes.doneAt = done ? new Date() : null;
+    if (done !== existing.done) {
+      changes.doneAt = done ? new Date() : null;
+      doneChanged = true;
+    }
   }
 
   const [task] = Object.keys(changes).length
     ? await db.update(tasks).set(changes).where(mine).returning()
     : await db.select().from(tasks).where(mine);
   if (!task) return json({ error: "Task not found" }, 404);
+
+  if (doneChanged) {
+    if (task.done) await logDone(task, userId);
+    else await unlogTaskDone(me.spaceId, task.id, task.goalId);
+  }
 
   return json({ task: toClient(task) });
 }

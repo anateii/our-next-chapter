@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { Show, SignIn, useAuth } from "@clerk/react";
 import type { CalendarEvent, Goal, Task } from "./types";
-import { goalProgress, goalStatus } from "./goals";
+import { goalProgress, goalStatus, goalSteps } from "./goals";
 import Sidebar from "./components/Sidebar";
 import Home from "./pages/Home";
 import Goals from "./pages/Goals";
@@ -25,6 +25,8 @@ import {
   type ApiMember,
 } from "./helpers/goals";
 import { fromApiEvent, homeQuery, type ApiHome } from "./helpers/home";
+import { activitySince, type ApiActivity } from "./helpers/activity";
+import { PeopleContext, peopleFrom } from "./helpers/people";
 import {
   applyEdits,
   byDue,
@@ -39,11 +41,20 @@ import {
 
 // Tiny hash router: #goals opens Our Goals, #tasks opens Tasks; any other
 // hash stays on Home (Home uses #calendar as an in-page anchor).
-const pages: Record<string, "goals" | "tasks"> = { "#goals": "goals", "#tasks": "tasks" };
-const activeLabel = { home: "Home", goals: "Our Goals", tasks: "Tasks" } as const;
+const pages: Record<string, "goals" | "tasks"> = {
+  "#goals": "goals",
+  "#tasks": "tasks",
+};
+const activeLabel = {
+  home: "Home",
+  goals: "Our Goals",
+  tasks: "Tasks",
+} as const;
 
 // How long an Undo toast stays up; deletes wait this long before reaching the API.
 const UNDO_MS = 5000;
+// How often to check for the other partner's changes while the app is showing.
+const REFRESH_MS = 30_000;
 function usePage() {
   const read = (): "home" | "goals" | "tasks" =>
     pages[globalThis.location.hash] ?? "home";
@@ -58,14 +69,65 @@ function usePage() {
 
 export default function App() {
   const page = usePage();
-  const api = useApi();
+  const request = useApi();
+
+  // Our own changes in flight. While any are, background refreshes hold off
+  // so they can't put back what was there before.
+  const writes = useRef({ started: 0, pending: 0 });
+  const holdRefresh = <T,>(p: Promise<T>) => {
+    writes.current.started += 1;
+    writes.current.pending += 1;
+    return p.finally(() => {
+      writes.current.pending -= 1;
+      // Our change is saved: pull the feed so it shows up in Recent activity.
+      if (writes.current.pending === 0) {
+        clearTimeout(activityTimer.current);
+        activityTimer.current = setTimeout(reloadActivity, 300);
+      }
+    });
+  };
+  const activityTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // Every write (anything but a GET) holds refreshes until it's done.
+  const api = <T,>(path: string, init: RequestInit = {}) =>
+    !init.method || init.method === "GET"
+      ? request<T>(path, init)
+      : holdRefresh(request<T>(path, init));
+  // Tasks added in this session keep their temporary id on screen: server id -> it.
+  const localIds = useRef(new Map<string, string>());
   const [tasks, setTasks] = useState<Task[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
+  // Per goal, how many linked tasks were finished before the loaded window.
+  const [olderDone, setOlderDone] = useState<Record<string, number>>({});
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState(0);
   const [members, setMembers] = useState<ApiMember[]>([]);
   const [spaceName, setSpaceName] = useState("");
   const [dataLoaded, setDataLoaded] = useState(false);
+  // Recent activity, and when I last opened it.
+  const [activity, setActivity] = useState<ApiActivity[]>([]);
+  const [lastSeenAt, setLastSeenAt] = useState<string | null>(null);
+
+  type ActivityRes = { activity: ApiActivity[]; lastSeenAt: string | null };
+  const loadActivity = () =>
+    request<ActivityRes>(
+      `/activity?since=${encodeURIComponent(activitySince().toISOString())}`,
+    );
+  const showActivity = (res: ActivityRes) => {
+    setActivity(res.activity);
+    setLastSeenAt(res.lastSeenAt);
+  };
+  const reloadActivity = () =>
+    loadActivity()
+      .then(showActivity)
+      .catch((err) => console.warn("Loading activity failed:", err));
+
+  // Opening the feed: everything so far is seen (on every device).
+  const markActivitySeen = () => {
+    setLastSeenAt(new Date().toISOString());
+    api<{ lastSeenAt: string }>("/activity", { method: "POST" })
+      .then((res) => setLastSeenAt(res.lastSeenAt))
+      .catch((err) => console.warn("Marking activity seen failed:", err));
+  };
 
   // Move focus to the new page's heading for keyboard and screen reader users.
   const firstRender = useRef(true);
@@ -112,26 +174,54 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `api` is a new function each render
   }, [isSignedIn, retry]);
 
+  // Everything the app shows. Open tasks, plus the ones done in the last
+  // 7 days (from local midnight).
+  const loadAll = () => {
+    const now = new Date();
+    const doneSince = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() - 6,
+    );
+    return Promise.all([
+      api<ApiHome>(`/home?${homeQuery()}`),
+      api<{ goals: ApiGoal[] }>("/goals"),
+      api<{ tasks: ApiTask[]; olderDone: Record<string, number> }>(
+        `/tasks?doneSince=${encodeURIComponent(doneSince.toISOString())}`,
+      ),
+      // The feed is extra: if it fails, show the rest without it.
+      loadActivity().catch((err): ActivityRes => {
+        console.warn("Loading activity failed:", err);
+        return { activity: [], lastSeenAt: null };
+      }),
+    ]);
+  };
+  const showAll = ([home, res, all, feed]: Awaited<
+    ReturnType<typeof loadAll>
+  >) => {
+    showActivity(feed);
+    setMembers(home.members);
+    setSpaceName(home.space.name);
+    setGoals(res.goals.map((g) => fromApiGoal(g, home.members)));
+    setTasks(
+      all.tasks.map((t) => ({
+        ...fromApiTask(t, home.members, userId),
+        id: localIds.current.get(t.id) ?? t.id,
+      })),
+    );
+    setOlderDone(all.olderDone);
+    setEvents(home.week.events.map(fromApiEvent));
+    setUpcomingEvents(home.stats.upcomingEvents);
+  };
+
   // Load the space's data once there is a space.
   useEffect(() => {
     if (spaceState !== "ready") return;
     let cancelled = false;
-    // Open tasks, plus the ones done in the last 7 days (from local midnight).
-    const now = new Date();
-    const doneSince = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
-    Promise.all([
-      api<ApiHome>(`/home?${homeQuery()}`),
-      api<{ goals: ApiGoal[] }>("/goals"),
-      api<{ tasks: ApiTask[] }>(`/tasks?doneSince=${encodeURIComponent(doneSince.toISOString())}`),
-    ])
-      .then(([home, res, all]) => {
+    loadAll()
+      .then((data) => {
         if (cancelled) return;
-        setMembers(home.members);
-        setSpaceName(home.space.name);
-        setGoals(res.goals.map((g) => fromApiGoal(g, home.members)));
-        setTasks(all.tasks.map((t) => fromApiTask(t, home.members, userId)));
-        setEvents(home.week.events.map(fromApiEvent));
-        setUpcomingEvents(home.stats.upcomingEvents);
+        showAll(data);
         setDataLoaded(true);
       })
       .catch((err) => {
@@ -143,6 +233,43 @@ export default function App() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `api` is a new function each render
   }, [spaceState]);
+
+  // Pick up the other partner's changes: when the app comes back into view,
+  // and every 30 seconds while it's showing. A refresh is skipped, or its
+  // result dropped, while one of our own changes is still being saved.
+  useEffect(() => {
+    if (!dataLoaded) return;
+    let cancelled = false;
+    let loading = false;
+    const refresh = () => {
+      if (
+        loading ||
+        document.visibilityState !== "visible" ||
+        writes.current.pending
+      )
+        return;
+      loading = true;
+      const startedAt = writes.current.started;
+      loadAll()
+        .then((data) => {
+          const changedMeanwhile =
+            writes.current.pending > 0 || writes.current.started !== startedAt;
+          if (!cancelled && !changedMeanwhile) showAll(data);
+        })
+        .catch((err) => console.warn("Refreshing data failed:", err))
+        .finally(() => {
+          loading = false;
+        });
+    };
+    const timer = setInterval(refresh, REFRESH_MS);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `api` is a new function each render
+  }, [dataLoaded]);
 
   // Short confirmation in the corner, e.g. "Added to Today", with Undo when
   // the action can be taken back.
@@ -171,28 +298,66 @@ export default function App() {
     taskDialogRef.current?.showModal();
   };
 
-  // Save, then add the stored task (with its real id) to the list.
-  const createTask = (t: NewTask) =>
-    api<{ task: ApiTask }>("/tasks", {
-      method: "POST",
-      body: JSON.stringify({
+  // A task added here keeps its temporary id in the UI, so an open panel or
+  // row doesn't remount when the save lands. API calls for it wait for the
+  // save and use the id the server gave it (undefined if the save failed).
+  const savedIds = useRef(new Map<string, Promise<string | undefined>>());
+  const serverId = (id: string) =>
+    savedIds.current.get(id) ?? Promise.resolve<string | undefined>(id);
+
+  // Show it now, save in the background, take it away again if that fails.
+  const createTask = (t: NewTask) => {
+    const id = `new-${crypto.randomUUID()}`;
+    const ownerUserId = toUserId(t.owner, members);
+    const created = fromApiTask(
+      {
+        id,
         title: t.title,
-        ownerUserId: toUserId(t.owner, members),
+        ownerUserId,
+        status: "To do",
+        done: false,
         dueAt: t.dueAt,
         goalId: t.goalId,
-      }),
-    })
-      .then(({ task }) => {
-        const created = fromApiTask(task, members, userId);
-        setTasks((ts) => [...ts, created]);
-        setToast({ message: `Added to ${groupLabels[taskGroup(created)]}`, ok: true });
-        return created;
+        notes: null,
+        createdBy: userId ?? null,
+        createdAt: new Date().toISOString(),
+        doneAt: null,
+      },
+      members,
+      userId,
+    );
+    setTasks((ts) => [...ts, created]);
+    setToast({
+      message: `Added to ${groupLabels[taskGroup(created)]}`,
+      ok: true,
+    });
+    savedIds.current.set(
+      id,
+      api<{ task: ApiTask }>("/tasks", {
+        method: "POST",
+        body: JSON.stringify({
+          title: t.title,
+          ownerUserId,
+          dueAt: t.dueAt,
+          goalId: t.goalId,
+        }),
       })
-      .catch((err) => {
-        console.error("Adding task failed:", err);
-        setToast({ message: "Couldn't add the task. Try again.", ok: false });
-        return undefined;
-      });
+        .then(({ task }) => {
+          localIds.current.set(task.id, id);
+          return task.id;
+        })
+        .catch((err) => {
+          console.error("Adding task failed:", err);
+          setTasks((ts) => ts.filter((x) => x.id !== id));
+          setToast({
+            message: `Couldn't add “${t.title}”. Try again.`,
+            ok: false,
+          });
+          return undefined;
+        }),
+    );
+    return Promise.resolve(created);
+  };
 
   // Change immediately, save in the background, put it back if the save fails.
   // Resolves true once saved.
@@ -202,18 +367,23 @@ export default function App() {
     const replace = (task: Task) =>
       setTasks((ts) => ts.map((t) => (t.id === id ? task : t)));
     replace(applyEdits(before, edits));
-    return api<{ task: ApiTask }>("/tasks", {
-      method: "PATCH",
-      body: JSON.stringify({ id, ...toApiEdits(edits, members) }),
-    })
-      .then(({ task }) => {
-        replace(fromApiTask(task, members, userId));
+    return holdRefresh(serverId(id))
+      .then(async (savedId) => {
+        if (!savedId) return false; // its add failed, and it's already gone
+        const { task } = await api<{ task: ApiTask }>("/tasks", {
+          method: "PATCH",
+          body: JSON.stringify({ id: savedId, ...toApiEdits(edits, members) }),
+        });
+        replace({ ...fromApiTask(task, members, userId), id });
         return true;
       })
       .catch((err) => {
         console.error("Saving task failed:", err);
         replace(before);
-        setToast({ message: "Couldn't save that change. Try again.", ok: false });
+        setToast({
+          message: "Couldn't save that change. Try again.",
+          ok: false,
+        });
         return false;
       });
   };
@@ -242,12 +412,27 @@ export default function App() {
     if (!task) return;
     const restore = () => setTasks((ts) => [...ts, task]);
     setTasks((ts) => ts.filter((t) => t.id !== id));
+    // Hold refreshes through the Undo window too, or one would bring it back.
+    let release = () => {};
+    void holdRefresh(new Promise<void>((resolve) => (release = resolve)));
     const timer = setTimeout(() => {
-      api(`/tasks?id=${encodeURIComponent(id)}`, { method: "DELETE" }).catch((err) => {
-        console.error("Deleting task failed:", err);
-        restore();
-        setToast({ message: "Couldn't delete the task. Try again.", ok: false });
-      });
+      serverId(id)
+        .then(
+          (savedId) =>
+            savedId &&
+            api(`/tasks?id=${encodeURIComponent(savedId)}`, {
+              method: "DELETE",
+            }),
+        )
+        .catch((err) => {
+          console.error("Deleting task failed:", err);
+          restore();
+          setToast({
+            message: "Couldn't delete the task. Try again.",
+            ok: false,
+          });
+        })
+        .finally(release);
     }, UNDO_MS);
     setToast({
       message: `Deleted “${task.title}”`,
@@ -255,6 +440,7 @@ export default function App() {
       undo: () => {
         clearTimeout(timer);
         restore();
+        release();
       },
     });
   };
@@ -265,6 +451,7 @@ export default function App() {
     .sort(byDue);
   const tasksLeft = tasks.filter((t) => !t.done).length;
   const me = toPerson(userId ?? null, members);
+  const steps = goalSteps(tasks, olderDone);
 
   // Save to the API, then add the stored goal (with its real id) to the list.
   const createGoal = (g: Omit<Goal, "id">) =>
@@ -280,7 +467,9 @@ export default function App() {
     const previous = goals.find((g) => g.featured)?.id;
     if (previous === id) return;
     const setFeatured = (featuredId?: string) =>
-      setGoals((gs) => gs.map((g) => ({ ...g, featured: g.id === featuredId })));
+      setGoals((gs) =>
+        gs.map((g) => ({ ...g, featured: g.id === featuredId })),
+      );
     setFeatured(id);
     api("/goals", {
       method: "PATCH",
@@ -311,15 +500,37 @@ export default function App() {
       )
       .catch((err) => console.error("Saving goal failed:", err));
 
-  // Complete immediately, save in the background, restore the goal if it fails.
+  // A step is a task linked to the goal, with no day: it waits under Someday.
+  const addStep = (goal: Goal, title: string) =>
+    createTask({ title, owner: goal.owner, dueAt: null, goalId: goal.id });
+
+  // A goal with steps completes by finishing the open ones (with Undo).
+  // Otherwise: complete immediately, save in the background, restore if it fails.
   const completeGoal = (id: string) => {
+    const open = steps.get(id)?.open ?? [];
+    if (open.length) {
+      for (const t of open) void updateTask(t.id, { status: "Done" });
+      setToast({
+        message: `Finished ${open.length} ${open.length === 1 ? "step" : "steps"}`,
+        ok: true,
+        undo: () => {
+          for (const t of open) void updateTask(t.id, { status: t.status });
+        },
+      });
+      return;
+    }
     const before = goals.find((g) => g.id === id);
     if (!before) return;
     const replace = (goal: Goal) =>
       setGoals((gs) => gs.map((g) => (g.id === id ? goal : g)));
     // Same rule as the API: a goal with no steps counts as one step, done.
     const total = Math.max(before.stepsTotal, 1);
-    replace({ ...before, stepsTotal: total, stepsDone: total, nextStep: undefined });
+    replace({
+      ...before,
+      stepsTotal: total,
+      stepsDone: total,
+      nextStep: undefined,
+    });
     api("/goals", {
       method: "PATCH",
       body: JSON.stringify({ id, completed: true }),
@@ -337,7 +548,7 @@ export default function App() {
       (spaceState === "ready" && !dataLoaded && !previewOnboarding);
     if (loading)
       return (
-        <div className="auth-screen" role="status">
+        <output className="auth-screen">
           <LoaderCircle
             className="spin"
             aria-hidden="true"
@@ -345,7 +556,7 @@ export default function App() {
             color="var(--accent)"
           />
           <span className="sr-only">Loading your space…</span>
-        </div>
+        </output>
       );
     if (spaceState === "error")
       return (
@@ -371,89 +582,104 @@ export default function App() {
     if (spaceState === "none")
       return <Onboarding onDone={() => setSpaceState("ready")} />;
     return (
-      <div className="layout">
-        <Sidebar active={activeLabel[page]} />
-        <main id="main" className="main">
-          {page === "goals" && (
-            <Goals
-              goals={goals}
-              onCreate={createGoal}
-              onEdit={editGoal}
-              onFeature={featureGoal}
-              onComplete={completeGoal}
-            />
-          )}
-          {page === "tasks" && (
-            <Tasks
-              tasks={tasks}
-              goals={goals}
-              me={me}
-              onAdd={openTaskDialog}
-              onCreate={createTask}
-              onUpdate={updateTask}
-              onChange={changeTask}
-              onToggle={toggleTask}
-              onDelete={deleteTask}
-            />
-          )}
-          {page === "home" && (
-            <Home
-              tasks={todayTasks}
-              events={events}
-              tasksLeft={tasksLeft}
-              upcomingEvents={upcomingEvents}
-              onToggleTask={toggleTask}
-              onAddTask={openTaskDialog}
-              activeGoals={
-                // Active = not finished yet (not started or in progress)
-                goals.filter((g) => goalStatus(g) !== "Completed").length
-              }
-              goalCount={goals.length}
-              spaceName={spaceName}
-              adventure={
-                featured
-                  ? {
-                      title: featured.title,
-                      subtitle: featured.subtitle,
-                      progress: goalProgress(featured),
-                      image: featured.image,
-                      targetDate: featured.targetDate,
-                    }
-                  : null
-              }
-            />
-          )}
-        </main>
-        <TaskDialog
-          ref={taskDialogRef}
-          draft={taskDraft}
-          goals={goals}
-          onCreate={createTask}
-        />
-        <div role="status" aria-live="polite">
-          {toast && (
-            <div className={`toast${toast.undo ? " has-action" : ""}`}>
-              {toast.ok ? (
-                <Check aria-hidden="true" size={18} strokeWidth={2.6} />
-              ) : (
-                <CircleAlert aria-hidden="true" size={18} />
-              )}
-              {toast.message}
-              {toast.undo && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    toast.undo?.();
-                    setToast(null);
-                  }}
-                >
-                  <Undo2 aria-hidden="true" size={16} /> Undo
-                </button>
-              )}
-            </div>
-          )}
+      <PeopleContext.Provider value={peopleFrom(members)}>
+        <div className="layout">
+          <Sidebar active={activeLabel[page]} />
+          <main id="main" className="main">
+            {page === "goals" && (
+              <Goals
+                goals={goals}
+                steps={steps}
+                onCreate={createGoal}
+                onAddStep={addStep}
+                onToggleStep={toggleTask}
+                onEdit={editGoal}
+                onFeature={featureGoal}
+                onComplete={completeGoal}
+              />
+            )}
+            {page === "tasks" && (
+              <Tasks
+                tasks={tasks}
+                goals={goals}
+                me={me}
+                onAdd={openTaskDialog}
+                onUpdate={updateTask}
+                onChange={changeTask}
+                onToggle={toggleTask}
+                onDelete={deleteTask}
+              />
+            )}
+            {page === "home" && (
+              <Home
+                tasks={todayTasks}
+                events={events}
+                tasksLeft={tasksLeft}
+                upcomingEvents={upcomingEvents}
+                onToggleTask={toggleTask}
+                onAddTask={openTaskDialog}
+                activeGoals={
+                  // Active = not finished yet (not started or in progress)
+                  goals.filter(
+                    (g) => goalStatus(g, steps.get(g.id)) !== "Completed",
+                  ).length
+                }
+                goalCount={goals.length}
+                spaceName={spaceName}
+                adventure={
+                  featured
+                    ? {
+                        title: featured.title,
+                        subtitle: featured.subtitle,
+                        progress: goalProgress(
+                          featured,
+                          steps.get(featured.id),
+                        ),
+                        image: featured.image,
+                        targetDate: featured.targetDate,
+                      }
+                    : null
+                }
+                activity={activity}
+                lastSeenAt={lastSeenAt}
+                members={members}
+                myUserId={userId}
+                goals={goals}
+                onSeenActivity={markActivitySeen}
+              />
+            )}
+          </main>
+          <TaskDialog
+            ref={taskDialogRef}
+            draft={taskDraft}
+            goals={goals}
+            onCreate={createTask}
+          />
+          <div role="status" aria-live="polite">
+            {toast && (
+              <div className={`toast${toast.undo ? " has-action" : ""}`}>
+                {toast.ok ? (
+                  <Check aria-hidden="true" size={18} strokeWidth={2.6} />
+                ) : (
+                  <CircleAlert aria-hidden="true" size={18} />
+                )}
+                {toast.message}
+                {toast.undo && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      toast.undo?.();
+                      setToast(null);
+                    }}
+                  >
+                    <Undo2 aria-hidden="true" size={16} /> Undo
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </PeopleContext.Provider>
     );
   };
 

@@ -2,6 +2,7 @@ import { db } from "../db/client.js";
 import { eventKindEnum, events } from "../db/schema.js";
 import { getUserId, json } from "./_lib/auth.js";
 import { getMembership } from "./_lib/space.js";
+import { logActivity } from "./_lib/activity.js";
 
 type Kind = (typeof eventKindEnum.enumValues)[number];
 
@@ -33,5 +34,12 @@ export async function POST(req: Request) {
     .insert(events)
     .values({ spaceId: me.spaceId, title, kind, startsAt })
     .returning();
+  await logActivity({
+    spaceId: me.spaceId,
+    actorUserId: userId,
+    kind: "event_added",
+    title,
+    whenAt: startsAt,
+  });
   return json({ event }, 201);
 }

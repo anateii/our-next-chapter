@@ -37,6 +37,8 @@
   font-weight: 600;
   color: var(--faint);
   font-variant-numeric: tabular-nums;
+  /* Centre on the label's lowercase letters; on the baseline it sits high */
+  vertical-align: middle;
 }
 .segmented button.active .seg-count {
   color: var(--accent);
@@ -199,6 +201,92 @@
   background: var(--sage);
   transition: width 300ms var(--ease);
 }
+.goal-steps-line {
+  margin-top: -4px;
+  font-size: 13px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.goal-next-step {
+  color: var(--text-2);
+  font-weight: 600;
+}
+.link-btn {
+  min-height: 24px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.link-btn:hover {
+  text-decoration: underline;
+}
+
+/* Steps in the Edit goal dialog */
+.goal-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.goal-steps-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.goal-steps-head h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.goal-steps ul {
+  list-style: none;
+}
+.goal-steps li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.goal-steps li:last-child {
+  border-bottom: none;
+}
+.goal-steps .check {
+  margin: -10px 0 -10px -10px;
+}
+.goal-step-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.goal-steps li.done .goal-step-title {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.step-chip {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+.field.goal-step-add {
+  flex-direction: row;
+  gap: 8px;
+}
+.goal-step-add input {
+  flex: 1;
+  min-width: 0;
+}
+
 .goal-next {
   margin-top: auto;
   padding-top: 10px;

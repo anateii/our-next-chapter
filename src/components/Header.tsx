@@ -1,8 +1,7 @@
-import { useState } from "react";
-import { Search, Bell } from "lucide-react";
 import { useUser } from "@clerk/react";
 
-const views = ["Overview", "Recent activity", "Upcoming"];
+const homeViews = ["Overview", "Recent activity", "Upcoming"] as const;
+export type HomeView = (typeof homeViews)[number];
 
 const greeting = () => {
   const h = new Date().getHours();
@@ -11,34 +10,38 @@ const greeting = () => {
   return "Good evening";
 };
 
-export default function Header() {
+export default function Header({
+  view,
+  onView,
+  newCount,
+}: Readonly<{
+  view: HomeView;
+  onView: (v: HomeView) => void;
+  newCount: number; // the partner's activity since I last opened the feed
+}>) {
   const { user } = useUser();
-  const [view, setView] = useState("Overview");
 
   return (
     <>
       <div className="topbar">
         <div className="segmented" aria-label="Home views">
-          {views.map((v) => (
+          {homeViews.map((v) => (
             <button
               key={v}
               type="button"
               aria-pressed={v === view}
               className={v === view ? "active" : ""}
-              onClick={() => setView(v)}
+              onClick={() => onView(v)}
             >
               {v}
+              {v === "Recent activity" && newCount > 0 && (
+                <>
+                  <span className="seg-dot" aria-hidden="true" />
+                  <span className="sr-only">, {newCount} new</span>
+                </>
+              )}
             </button>
           ))}
-        </div>
-        <div className="topbar-actions">
-          <button type="button" className="icon-btn" aria-label="Search">
-            <Search aria-hidden="true" size={20} />
-          </button>
-          <button type="button" className="icon-btn" aria-label="Notifications, 1 new">
-            <Bell aria-hidden="true" size={20} />
-            <span className="badge-dot" aria-hidden="true" />
-          </button>
         </div>
       </div>
       <header className="greeting">
