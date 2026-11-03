@@ -57,7 +57,9 @@ export default function Sidebar({ active = "Home" }: Readonly<{ active?: string 
         <div className="couple">
           <Avatars owner="Both" />
           <span className="couple-name">Ana &amp; Oliver</span>
-          <UserButton />
+          <span className="couple-user">
+            <UserButton />
+          </span>
         </div>
         <a className="nav-link" href="#settings">
           <Settings aria-hidden="true" size={20} /> <span className="nav-label">Settings</span>

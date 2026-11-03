@@ -3,6 +3,7 @@ import { db } from "../db/client.js";
 import { events, goals, members, spaces, tasks } from "../db/schema.js";
 import { getUserId, json } from "./_lib/auth.js";
 import { addDays, dateParam, getMembership } from "./_lib/space.js";
+import { photoUrl } from "./_lib/photos.js";
 
 // Everything the Home page needs in one request.
 // The client sends its local day/week boundaries (ISO), since "today" depends on its timezone:
@@ -76,8 +77,10 @@ export async function GET(req: Request) {
       return Math.min(100, Math.round((g.savedCents / g.targetCents) * 100));
     return 0;
   };
-  const inProgress = (g: (typeof spaceGoals)[number]) =>
-    g.stepsDone > 0 && g.stepsDone < g.stepsTotal;
+  // Active = not finished yet (matches goalStatus() in the client:
+  // completed means it has steps and all of them are done).
+  const active = (g: (typeof spaceGoals)[number]) =>
+    !(g.stepsTotal > 0 && g.stepsDone >= g.stepsTotal);
 
   return json({
     space: {
@@ -88,7 +91,7 @@ export async function GET(req: Request) {
     },
     members: people,
     stats: {
-      activeGoals: spaceGoals.filter(inProgress).length,
+      activeGoals: spaceGoals.filter(active).length,
       tasksLeft: open.n,
       upcomingEvents: weekEvents.filter((e) => e.startsAt >= now).length,
     },
@@ -98,7 +101,7 @@ export async function GET(req: Request) {
           title: featured.name,
           subtitle: featured.subtitle,
           progress: progress(featured),
-          image: featured.imageUrl,
+          image: featured.imageUrl && photoUrl(featured.imageUrl),
           targetDate: featured.targetDate, // "YYYY-MM-DD" or null
         }
       : null,

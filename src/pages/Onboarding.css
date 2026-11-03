@@ -1,0 +1,299 @@
+/* Phone first: a full-height column, actions pinned to the bottom.
+   From 640px it becomes a centred card. */
+.onboarding {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: calc(16px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom));
+}
+.ob-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 16px;
+  font-weight: 700;
+}
+.ob-brand svg {
+  color: var(--accent);
+}
+.ob-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.ob-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Top row: back button + step progress */
+.ob-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+}
+.ob-top-end {
+  justify-content: flex-end;
+}
+.ob-back {
+  margin-left: -10px;
+}
+.ob-progress {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* Heading block */
+.ob-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ob-intro-welcome {
+  margin-top: 36px;
+}
+.ob-intro h1,
+.ob-done h1 {
+  font-size: clamp(28px, 4vw, 34px);
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+.ob-intro h1:focus,
+.ob-done h1:focus {
+  outline: none;
+}
+.ob-intro p,
+.ob-done p {
+  font-size: 16px;
+  color: var(--muted);
+}
+.ob-badge {
+  margin-bottom: 8px;
+}
+
+/* Welcome choices */
+.ob-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ob-choice {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  text-align: left;
+  transition:
+    box-shadow var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    transform 120ms var(--ease);
+}
+.ob-choice > svg {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.ob-choice:active {
+  transform: scale(0.99);
+}
+@media (hover: hover) {
+  .ob-choice:hover {
+    border-color: #dcdaf6;
+    box-shadow: var(--shadow-card);
+  }
+}
+.ob-choice-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ob-choice-text strong {
+  font-size: 16px;
+  font-weight: 600;
+}
+.ob-choice-text span {
+  font-size: 14px;
+  color: var(--muted);
+}
+.ob-signed-in {
+  margin-top: auto;
+  text-align: center;
+  font-size: 14px;
+  color: var(--muted);
+}
+.ob-link {
+  min-height: 44px;
+  padding: 0 4px;
+  border: none;
+  background: none;
+  color: var(--accent-strong);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Invite code */
+.ob-code-card {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ob-code-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.ob-code-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ob-code {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-strong);
+}
+.ob-code-row .ob-copy {
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 14px;
+}
+.ob-code-loading {
+  min-height: 45px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  color: var(--muted);
+}
+.ob-code-failed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #b3361f;
+  font-size: 15px;
+  font-weight: 500;
+}
+.field .ob-code-input {
+  min-height: 56px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+}
+.ob-code-input::placeholder {
+  color: #b9b7cb;
+  font-weight: 500;
+}
+
+/* Bottom actions */
+.ob-actions {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+/* .ob-actions prefix: this file loads before App.css's .btn-primary */
+.ob-actions .ob-cta {
+  min-height: 52px;
+  font-size: 16px;
+}
+.ob-actions .ob-cta:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+.ob-skip {
+  min-height: 48px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--accent-strong);
+  font-size: 15px;
+  font-weight: 600;
+}
+@media (hover: hover) {
+  .ob-skip:hover {
+    background: #ecebf5;
+  }
+}
+.ob-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: #fdecea;
+  color: #8f2a17;
+  font-size: 14px;
+  font-weight: 500;
+}
+.ob-alert svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* Done */
+.ob-done {
+  margin-top: 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+.ob-done .stat-icon {
+  width: 72px;
+  height: 72px;
+  margin-bottom: 8px;
+}
+.ob-done p {
+  max-width: 320px;
+}
+
+/* Tablet & desktop: centred card */
+@media (min-width: 640px) {
+  .onboarding {
+    padding: 32px 48px;
+  }
+  .ob-card {
+    flex: 0 1 auto;
+    width: min(520px, 100%);
+    margin: auto;
+    padding: 40px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    box-shadow: var(--shadow-card);
+  }
+  .ob-step {
+    gap: 28px;
+  }
+  .ob-intro-welcome,
+  .ob-done {
+    margin-top: 0;
+  }
+  .ob-choice {
+    background: var(--surface-sunken);
+  }
+  .ob-actions,
+  .ob-signed-in {
+    margin-top: 8px;
+  }
+}

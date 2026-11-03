@@ -1,32 +1,54 @@
 import { useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { Plus, LayoutGrid, List } from "lucide-react";
 import type { Goal, GoalStatus } from "../types";
 import { goalStatus } from "../goals";
 import GoalCard from "../components/GoalCard";
-import NewGoalDialog from "../components/NewGoalDialog";
+import NewGoalDialog, { type GoalEdits } from "../components/NewGoalDialog";
 import "./Goals.css";
 
 type Filter = "All" | GoalStatus;
 const filters: Filter[] = ["All", "In progress", "Not started", "Completed"];
 
+// Empty-state heading when goals exist but none match the filter.
+const emptyTitle: Record<Filter, string> = {
+  All: "No goals yet",
+  "In progress": "Nothing in progress",
+  "Not started": "Everything's under way",
+  Completed: "Nothing completed yet",
+};
+
 export default function Goals({
   goals,
   onCreate,
+  onEdit,
   onFeature,
   onComplete,
 }: Readonly<{
   goals: readonly Goal[];
   onCreate: (g: Omit<Goal, "id">) => void;
+  onEdit: (id: string, edits: GoalEdits) => void;
   onFeature: (id: string) => void;
   onComplete: (id: string) => void;
 }>) {
   const [filter, setFilter] = useState<Filter>("All");
   const [view, setView] = useState<"grid" | "list">("grid");
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const [editing, setEditing] = useState<Goal | null>(null);
+
+  // Render the dialog for this goal (or a new one) before opening it, so
+  // showModal() focuses the right, freshly filled fields.
+  const openDialog = (goal: Goal | null) => {
+    flushSync(() => setEditing(goal));
+    dialogRef.current?.showModal();
+  };
 
   const count = (f: Filter) =>
-    f === "All" ? goals.length : goals.filter((g) => goalStatus(g) === f).length;
-  const visible = filter === "All" ? goals : goals.filter((g) => goalStatus(g) === filter);
+    f === "All"
+      ? goals.length
+      : goals.filter((g) => goalStatus(g) === f).length;
+  const visible =
+    filter === "All" ? goals : goals.filter((g) => goalStatus(g) === filter);
 
   return (
     <>
@@ -37,7 +59,11 @@ export default function Goals({
           </h1>
           <p>Big plans, small steps.</p>
         </div>
-        <button type="button" className="btn-primary" onClick={() => dialogRef.current?.showModal()}>
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={() => openDialog(null)}
+        >
           <Plus aria-hidden="true" size={18} strokeWidth={2.4} /> New goal
         </button>
       </header>
@@ -85,24 +111,53 @@ export default function Goals({
       {visible.length > 0 ? (
         <div className={view === "grid" ? "goals-grid" : "goals-list"}>
           {visible.map((g) => (
-            <GoalCard key={g.id} goal={g} onFeature={onFeature} onComplete={onComplete} />
+            <GoalCard
+              key={g.id}
+              goal={g}
+              onEdit={openDialog}
+              onFeature={onFeature}
+              onComplete={onComplete}
+            />
           ))}
         </div>
-      ) : (
+      ) : goals.length === 0 ? (
+        // No goals at all: invite them to create the first one.
         <div className="card goals-empty">
-          <h2>{filter === "Completed" ? "Nothing completed yet" : `No goals ${filter.toLowerCase()}`}</h2>
+          <h2>No goals yet</h2>
+          <p>Start something new together.</p>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => openDialog(null)}
+          >
+            <Plus aria-hidden="true" size={18} strokeWidth={2.4} /> Create your first goal
+          </button>
+        </div>
+      ) : (
+        // Goals exist, just none match this filter.
+        <div className="card goals-empty">
+          <h2>{emptyTitle[filter]}</h2>
           <p>
             {filter === "Completed"
               ? "Finished goals will land here. Every step counts."
-              : "Start something new together."}
+              : "Nothing here right now."}
           </p>
-          <button type="button" className="btn-secondary" onClick={() => setFilter("All")}>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => setFilter("All")}
+          >
             Show all goals
           </button>
         </div>
       )}
 
-      <NewGoalDialog ref={dialogRef} onCreate={onCreate} />
+      <NewGoalDialog
+        ref={dialogRef}
+        goal={editing}
+        onCreate={onCreate}
+        onEdit={onEdit}
+      />
     </>
   );
 }

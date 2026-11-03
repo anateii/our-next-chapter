@@ -38,6 +38,12 @@ export const toPerson = (
   return name === "Ana" || name === "Oliver" ? name : "Both";
 };
 
+// "Ana" | "Oliver" | "Both" -> Clerk user id (null = both of you)
+export const toUserId = (person: Person, members: readonly ApiMember[]) =>
+  person === "Both"
+    ? null
+    : (members.find((m) => m.displayName === person)?.userId ?? null);
+
 // API goal -> the Goal type the UI already uses.
 // null becomes undefined because the UI's optional fields are `field?: string`.
 export const fromApiGoal = (
@@ -64,10 +70,8 @@ export const toApiNewGoal = (
 ) => ({
   title: g.title,
   category: g.category.toLowerCase(),
-  ownerUserId:
-    g.owner === "Both"
-      ? null
-      : (members.find((m) => m.displayName === g.owner)?.userId ?? null),
+  ownerUserId: toUserId(g.owner, members),
   nextStep: g.nextStep,
   targetDate: g.targetDate,
+  imageUrl: g.image,
 });

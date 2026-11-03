@@ -300,94 +300,87 @@
   margin-bottom: 8px;
 }
 
-/* New goal dialog */
-.dialog {
-  width: min(480px, calc(100% - 32px));
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: 0 24px 64px rgba(28, 27, 46, 0.24);
-}
-.dialog[open] {
-  animation: dialog-in 200ms var(--ease);
-}
-.dialog::backdrop {
-  background: rgba(28, 27, 46, 0.4);
-}
-@keyframes dialog-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px) scale(0.98);
-  }
-}
-.dialog form {
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-.dialog-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.dialog-head h2 {
-  font-size: 20px;
-  font-weight: 700;
-}
-.dialog-head .icon-btn {
-  margin-right: -10px;
-}
-.field {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.field-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-.field-row .field {
-  min-width: 160px;
-}
-.field label {
+/* Photo field: a 16:9 drop area matching the goal card cover */
+.field-label {
   font-size: 14px;
   font-weight: 600;
   color: var(--text-2);
 }
-.field input,
-.field select {
-  min-height: 44px;
-  padding: 0 14px;
-  border-radius: var(--radius-sm);
-  border: 1px solid #e1dfee;
+.photo-drop {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-md);
+  border: 2px dashed #d9d7ea;
   background: var(--surface-sunken);
-  font-size: 16px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition:
+    border-color var(--dur) var(--ease),
+    background var(--dur) var(--ease);
 }
-.field input[aria-invalid="true"] {
-  border-color: #c2412b;
+.photo-drop.has-photo {
+  border-style: solid;
+  border-color: var(--line);
 }
-.field-hint {
+.photo-drop.dragging,
+#goal-photo:focus-visible + input + .photo-drop {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+#goal-photo:focus-visible + input + .photo-drop {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+@media (hover: hover) {
+  .photo-drop:not(.has-photo):hover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+}
+.photo-drop img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.photo-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent);
+  font-size: 15px;
+  font-weight: 600;
+}
+.photo-empty-hint {
   font-size: 13px;
+  font-weight: 400;
   color: var(--muted);
 }
-.field-error {
-  font-size: 13px;
-  font-weight: 500;
-  color: #b3361f;
-}
-.dialog-actions {
+.photo-busy {
+  position: absolute;
+  inset: 0;
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding-top: 4px;
+  background: rgba(28, 27, 46, 0.45);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
 }
-
-/* Phones: filters fill the row, dialog becomes a bottom sheet */
+.photo-actions {
+  display: flex;
+  gap: 8px;
+}
+.photo-actions .btn-secondary {
+  cursor: pointer;
+  font-size: 14px;
+}
+/* Phones: filters fill the row */
 @media (max-width: 640px) {
   .page-head {
     padding-top: 4px;
@@ -407,29 +400,5 @@
   }
   .goals-grid {
     gap: 16px;
-  }
-
-  .dialog {
-    width: 100%;
-    max-width: none;
-    max-height: 92dvh;
-    margin: auto 0 0;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    overflow-y: auto;
-  }
-  .dialog form {
-    padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
-  }
-  .dialog[open] {
-    animation-name: sheet-in;
-  }
-  .dialog-actions > * {
-    flex: 1;
-  }
-}
-@keyframes sheet-in {
-  from {
-    transform: translateY(24px);
-    opacity: 0;
   }
 }

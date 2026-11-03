@@ -7,9 +7,11 @@ const dots = ["var(--dot-1)", "var(--dot-2)", "var(--dot-3)"];
 export default function TodayList({
   tasks,
   onToggle,
+  onAdd,
 }: Readonly<{
   tasks: readonly Task[];
   onToggle: (id: string) => void;
+  onAdd: () => void;
 }>) {
   const left = tasks.filter((t) => !t.done).length;
 
@@ -22,10 +24,13 @@ export default function TodayList({
             {left}
           </span>
         </div>
-        <button type="button" className="fab" aria-label="Add a task for today">
+        <button type="button" className="fab" aria-label="Add a task" onClick={onAdd}>
           <Plus aria-hidden="true" size={18} strokeWidth={2.4} />
         </button>
       </div>
+      {tasks.length === 0 && (
+        <p className="empty">Nothing due today. Enjoy the breathing room.</p>
+      )}
       <ul className="today">
         {tasks.map((t, i) => (
           <li key={t.id} className={t.done ? "done" : ""}>

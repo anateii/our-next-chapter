@@ -27,7 +27,7 @@ export interface CalendarEvent {
   title: string;
   date: Date;
   time: string;
-  kind: "home" | "food" | "checkin";
+  kind: "home" | "food" | "checkin" | "other";
 }
 export interface Adventure {
   title: string;

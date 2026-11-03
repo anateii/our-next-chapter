@@ -1,17 +1,24 @@
 import { Check, Star } from "lucide-react";
 import type { Goal } from "../types";
-import { categoryIcons, goalProgress, goalStatus } from "../goals";
+import { categoryIcons, goalProgress, goalStatus, parseDay } from "../goals";
 import Avatars from "./Avatars";
 import GoalMenu from "./GoalMenu";
 
 const slug = (s: string) => s.toLowerCase().replace(/\s+/g, "-");
+const byDate = new Intl.DateTimeFormat(undefined, {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+});
 
 export default function GoalCard({
   goal,
+  onEdit,
   onFeature,
   onComplete,
 }: Readonly<{
   goal: Goal;
+  onEdit: (goal: Goal) => void;
   onFeature: (id: string) => void;
   onComplete: (id: string) => void;
 }>) {
@@ -44,6 +51,7 @@ export default function GoalCard({
           <GoalMenu
             label={`More options for ${goal.title}`}
             actions={[
+              { label: "Edit goal", onSelect: () => onEdit(goal) },
               {
                 label: goal.featured ? "Featured on Home" : "Feature on Home",
                 onSelect: () => onFeature(goal.id),
@@ -52,16 +60,22 @@ export default function GoalCard({
               {
                 label: "Mark as completed",
                 onSelect: () => onComplete(goal.id),
-                disabled: status === "Completed" || goal.stepsTotal === 0,
+                // A goal with no steps completes as 1 of 1 (see PATCH /api/goals).
+                disabled: status === "Completed",
               },
             ]}
           />
         </div>
         <p className="goal-meta">
-          {goal.category} ·{" "}
-          {goal.stepsTotal
-            ? `${goal.stepsDone} of ${goal.stepsTotal} steps`
-            : "No steps yet"}
+          {goal.category}
+          {goal.targetDate && (
+            <>
+              {" · by "}
+              <time dateTime={goal.targetDate}>
+                {byDate.format(parseDay(goal.targetDate))}
+              </time>
+            </>
+          )}
         </p>
         <div className="goal-progress">
           <div
@@ -79,13 +93,7 @@ export default function GoalCard({
         <div className="goal-next">
           <Avatars owner={goal.owner} />
           <p>
-            {goal.nextStep ? (
-              <>
-                <span>Next:</span> {goal.nextStep}
-              </>
-            ) : (
-              <span>No next step yet</span>
-            )}
+            <span>{goal.owner === "Both" ? "Both of us" : `${goal.owner} is leading`}</span>
           </p>
         </div>
       </div>

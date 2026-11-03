@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { House, Utensils, MessageCircle } from "lucide-react";
+import { House, Utensils, MessageCircle, CalendarDays } from "lucide-react";
 import type { CalendarEvent } from "../types";
 
-const icons = { home: House, food: Utensils, checkin: MessageCircle };
+const icons = { home: House, food: Utensils, checkin: MessageCircle, other: CalendarDays };
 
 const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
 
