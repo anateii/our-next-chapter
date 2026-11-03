@@ -31,8 +31,23 @@ export interface CalendarEvent {
 }
 export interface Adventure {
   title: string;
-  subtitle: string;
+  subtitle?: string;
   progress: number;
+  image?: string;
+}
+export type GoalCategory = "Travel" | "Home" | "Career" | "Finance" | "Life";
+export type GoalStatus = "In progress" | "Not started" | "Completed";
+export interface Goal {
+  id: string;
+  title: string;
+  subtitle?: string;
+  category: GoalCategory;
+  stepsDone: number;
+  stepsTotal: number;
+  nextStep?: string;
+  owner: Person;
+  image?: string;
+  featured?: boolean; // shown as the "next adventure" card on Home
 }
 export interface Plan {
   id: string;

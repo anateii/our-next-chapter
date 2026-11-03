@@ -1,4 +1,5 @@
 import { Target, Check, CalendarDays } from "lucide-react";
+import type { Adventure } from "../types";
 
 const RING_R = 21;
 const RING_C = 2 * Math.PI * RING_R;
@@ -7,14 +8,12 @@ export default function StatCards({
   activeGoals,
   tasksLeft,
   upcomingEvents,
-  adventureTitle,
-  adventureProgress,
+  adventure,
 }: Readonly<{
   activeGoals: number;
   tasksLeft: number;
   upcomingEvents: number;
-  adventureTitle: string;
-  adventureProgress: number;
+  adventure: Adventure | null;
 }>) {
   return (
     <section className="stats" aria-label="At a glance">
@@ -45,23 +44,25 @@ export default function StatCards({
           <span>Upcoming events</span>
         </div>
       </div>
-      <div className="card stat">
-        <svg className="ring" width="52" height="52" viewBox="0 0 52 52" aria-hidden="true">
-          <circle cx="26" cy="26" r={RING_R} className="ring-track" />
-          <circle
-            cx="26"
-            cy="26"
-            r={RING_R}
-            className="ring-value"
-            strokeDasharray={`${(adventureProgress / 100) * RING_C} ${RING_C}`}
-            transform="rotate(-90 26 26)"
-          />
-        </svg>
-        <div>
-          <strong>{adventureProgress}%</strong>
-          <span>{adventureTitle} goal</span>
+      {adventure && (
+        <div className="card stat">
+          <svg className="ring" width="52" height="52" viewBox="0 0 52 52" aria-hidden="true">
+            <circle cx="26" cy="26" r={RING_R} className="ring-track" />
+            <circle
+              cx="26"
+              cy="26"
+              r={RING_R}
+              className="ring-value"
+              strokeDasharray={`${(adventure.progress / 100) * RING_C} ${RING_C}`}
+              transform="rotate(-90 26 26)"
+            />
+          </svg>
+          <div>
+            <strong>{adventure.progress}%</strong>
+            <span>{adventure.title}</span>
+          </div>
         </div>
-      </div>
+      )}
     </section>
   );
 }

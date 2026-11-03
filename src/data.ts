@@ -5,8 +5,9 @@ import type {
   MoneyGoal,
   Decision,
   CalendarEvent,
-  Adventure,
+  Goal,
 } from "./types";
+import thailand from "./assets/thailand.png";
 
 export const focus = "A home together. A job that fits. Thailand in 2027.";
 
@@ -78,12 +79,66 @@ export const decisions: Decision[] = [
   { id: "d2", question: "When could Oliver join?", icon: "calendar" },
 ];
 
-// Sample data below until progress and the calendar are stored in the database.
-export const adventure: Adventure = {
-  title: "Thailand",
-  subtitle: "Ana moves in 2027 · Oliver joins after",
-  progress: 35,
-};
+// Sample data below until goals, steps and the calendar are stored in the database.
+export const initialLifeGoals: Goal[] = [
+  {
+    id: "lg1",
+    title: "Thailand adventure",
+    subtitle: "Ana moves in 2027 · Oliver joins after",
+    category: "Travel",
+    stepsDone: 7,
+    stepsTotal: 20,
+    nextStep: "Research visa requirements",
+    owner: "Both",
+    image: thailand,
+    featured: true,
+  },
+  {
+    id: "lg2",
+    title: "Move in together",
+    category: "Home",
+    stepsDone: 5,
+    stepsTotal: 12,
+    nextStep: "Shortlist places to rent",
+    owner: "Both",
+  },
+  {
+    id: "lg3",
+    title: "Grow our careers",
+    category: "Career",
+    stepsDone: 3,
+    stepsTotal: 8,
+    nextStep: "Apply for suitable remote roles",
+    owner: "Ana",
+  },
+  {
+    id: "lg4",
+    title: "Build our savings",
+    category: "Finance",
+    stepsDone: 6,
+    stepsTotal: 10,
+    nextStep: "Agree our apartment budget",
+    owner: "Both",
+  },
+  {
+    id: "lg5",
+    title: "Driving licence",
+    category: "Life",
+    stepsDone: 0,
+    stepsTotal: 6,
+    nextStep: "Book the theory test",
+    owner: "Both",
+  },
+  {
+    id: "lg6",
+    title: "Oliver joins in Thailand",
+    category: "Travel",
+    stepsDone: 0,
+    stepsTotal: 5,
+    nextStep: "Discuss Oliver's joining window",
+    owner: "Oliver",
+  },
+];
 
 const daysFromToday = (n: number) => {
   const d = new Date();

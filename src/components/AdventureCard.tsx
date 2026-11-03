@@ -1,20 +1,14 @@
 import { ArrowRight } from "lucide-react";
-import thailand from "../assets/thailand.png";
 import type { Adventure } from "../types";
 
 export default function AdventureCard({ adventure }: Readonly<{ adventure: Adventure }>) {
   return (
-    <section className="adventure">
-      <img
-        src={thailand}
-        alt="Limestone cliffs and longtail boats on a turquoise bay in Thailand"
-        width={2170}
-        height={725}
-      />
+    <section className={adventure.image ? "adventure" : "adventure no-image"}>
+      {adventure.image && <img src={adventure.image} alt="" width={2170} height={725} />}
       <div className="adventure-body">
         <p className="adventure-kicker">Our next adventure</p>
         <h2>{adventure.title}</h2>
-        <p className="adventure-sub">{adventure.subtitle}</p>
+        {adventure.subtitle && <p className="adventure-sub">{adventure.subtitle}</p>}
         <div className="adventure-progress">
           <div
             className="progress"

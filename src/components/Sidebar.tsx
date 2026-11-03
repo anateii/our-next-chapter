@@ -7,6 +7,7 @@ import {
   Smile,
   Settings,
 } from "lucide-react";
+import { UserButton } from "@clerk/react";
 import Avatars from "./Avatars";
 
 const items = [
@@ -41,6 +42,7 @@ export default function Sidebar({ active = "Home" }: Readonly<{ active?: string 
         <div className="couple">
           <Avatars owner="Both" />
           <span>Ana &amp; Oliver</span>
+          <UserButton />
         </div>
         <a className="nav-link" href="#settings">
           <Settings aria-hidden="true" size={20} /> Settings

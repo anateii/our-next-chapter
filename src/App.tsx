@@ -1,18 +1,41 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Show, SignIn } from "@clerk/react";
-import { initialTasks, initialGoals, adventure, sampleEvents } from "./data";
-import type { Task } from "./types";
+import { initialTasks, initialLifeGoals } from "./data";
+import type { Goal, Task } from "./types";
+import { goalProgress, goalStatus } from "./goals";
 import Sidebar from "./components/Sidebar";
-import Header from "./components/Header";
-import StatCards from "./components/StatCards";
-import AdventureCard from "./components/AdventureCard";
-import QuoteCard from "./components/QuoteCard";
-import TodayList from "./components/TodayList";
-import WeekAhead from "./components/WeekAhead";
+import Home from "./pages/Home";
+import Goals from "./pages/Goals";
 import "./App.css";
 
+// Tiny hash router: #goals opens Our Goals; any other hash stays on Home
+// (Home uses #tasks / #calendar as in-page anchors).
+function usePage() {
+  const read = () => (globalThis.location.hash === "#goals" ? "goals" : "home");
+  const [page, setPage] = useState(read);
+  useEffect(() => {
+    const onHash = () => setPage(read());
+    globalThis.addEventListener("hashchange", onHash);
+    return () => globalThis.removeEventListener("hashchange", onHash);
+  }, []);
+  return page;
+}
+
 export default function App() {
+  const page = usePage();
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [goals, setGoals] = useState<Goal[]>(initialLifeGoals);
+
+  // Move focus to the new page's heading for keyboard and screen reader users.
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    globalThis.scrollTo({ top: 0 });
+    document.getElementById("page-title")?.focus();
+  }, [page]);
 
   const toggleTask = (id: string) =>
     setTasks((ts) =>
@@ -23,6 +46,19 @@ export default function App() {
       }),
     );
 
+  const createGoal = (g: Omit<Goal, "id">) =>
+    setGoals((gs) => [...gs, { ...g, id: crypto.randomUUID() }]);
+
+  const featureGoal = (id: string) =>
+    setGoals((gs) => gs.map((g) => ({ ...g, featured: g.id === id })));
+
+  const completeGoal = (id: string) =>
+    setGoals((gs) =>
+      gs.map((g) => (g.id === id ? { ...g, stepsDone: g.stepsTotal, nextStep: undefined } : g)),
+    );
+
+  const featured = goals.find((g) => g.featured);
+
   return (
     <>
       <Show when="signed-out">
@@ -32,24 +68,32 @@ export default function App() {
       </Show>
       <Show when="signed-in">
         <div className="layout">
-          <Sidebar />
-          <main id="home" className="main">
-            <Header />
-            <StatCards
-              activeGoals={initialGoals.length}
-              tasksLeft={tasks.filter((t) => !t.done).length}
-              upcomingEvents={sampleEvents.length}
-              adventureTitle={adventure.title}
-              adventureProgress={adventure.progress}
-            />
-            <div className="hero-row">
-              <AdventureCard adventure={adventure} />
-              <QuoteCard />
-            </div>
-            <div className="panels">
-              <TodayList tasks={tasks.filter((t) => t.time)} onToggle={toggleTask} />
-              <WeekAhead events={sampleEvents} />
-            </div>
+          <Sidebar active={page === "goals" ? "Our Goals" : "Home"} />
+          <main id="main" className="main">
+            {page === "goals" ? (
+              <Goals
+                goals={goals}
+                onCreate={createGoal}
+                onFeature={featureGoal}
+                onComplete={completeGoal}
+              />
+            ) : (
+              <Home
+                tasks={tasks}
+                onToggleTask={toggleTask}
+                activeGoals={goals.filter((g) => goalStatus(g) === "In progress").length}
+                adventure={
+                  featured
+                    ? {
+                        title: featured.title,
+                        subtitle: featured.subtitle,
+                        progress: goalProgress(featured),
+                        image: featured.image,
+                      }
+                    : null
+                }
+              />
+            )}
           </main>
         </div>
       </Show>

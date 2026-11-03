@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Search, Bell } from "lucide-react";
-import { UserButton, useUser } from "@clerk/react";
+import { useUser } from "@clerk/react";
 
 const views = ["Overview", "Recent activity", "Upcoming"];
 
@@ -39,7 +39,6 @@ export default function Header() {
             <Bell aria-hidden="true" size={20} />
             <span className="badge-dot" aria-hidden="true" />
           </button>
-          <UserButton />
         </div>
       </div>
       <header className="greeting">
@@ -47,7 +46,7 @@ export default function Header() {
           {greeting()}
           {user?.firstName ? `, ${user.firstName}` : ""}
         </p>
-        <h1>
+        <h1 id="page-title" tabIndex={-1}>
           <strong>Same team,</strong> brighter tomorrows.
         </h1>
       </header>
