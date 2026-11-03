@@ -91,6 +91,7 @@ export const initialLifeGoals: Goal[] = [
     nextStep: "Research visa requirements",
     owner: "Both",
     image: thailand,
+    targetDate: "2027-03-01",
     featured: true,
   },
   {

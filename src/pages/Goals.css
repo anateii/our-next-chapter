@@ -386,3 +386,50 @@
   gap: 8px;
   padding-top: 4px;
 }
+
+/* Phones: filters fill the row, dialog becomes a bottom sheet */
+@media (max-width: 640px) {
+  .page-head {
+    padding-top: 4px;
+  }
+  .page-head p {
+    font-size: 16px;
+  }
+  .goals-toolbar .segmented {
+    flex: 1 1 100%;
+  }
+  .goals-toolbar .segmented button {
+    flex: 1 1 auto;
+    padding: 0 12px;
+  }
+  .goals-toolbar .view-toggle {
+    margin-left: auto;
+  }
+  .goals-grid {
+    gap: 16px;
+  }
+
+  .dialog {
+    width: 100%;
+    max-width: none;
+    max-height: 92dvh;
+    margin: auto 0 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    overflow-y: auto;
+  }
+  .dialog form {
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+  }
+  .dialog[open] {
+    animation-name: sheet-in;
+  }
+  .dialog-actions > * {
+    flex: 1;
+  }
+}
+@keyframes sheet-in {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+}

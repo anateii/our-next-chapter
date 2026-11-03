@@ -69,6 +69,16 @@ export async function GET(req: Request) {
 
   const featured = spaceGoals.find((g) => g.featured);
 
+  // Steps drive progress; a savings goal with no steps falls back to money saved.
+  const progress = (g: (typeof spaceGoals)[number]) => {
+    if (g.stepsTotal) return Math.round((g.stepsDone / g.stepsTotal) * 100);
+    if (g.targetCents)
+      return Math.min(100, Math.round((g.savedCents / g.targetCents) * 100));
+    return 0;
+  };
+  const inProgress = (g: (typeof spaceGoals)[number]) =>
+    g.stepsDone > 0 && g.stepsDone < g.stepsTotal;
+
   return json({
     space: {
       id: space.id,
@@ -78,7 +88,7 @@ export async function GET(req: Request) {
     },
     members: people,
     stats: {
-      activeGoals: spaceGoals.length,
+      activeGoals: spaceGoals.filter(inProgress).length,
       tasksLeft: open.n,
       upcomingEvents: weekEvents.filter((e) => e.startsAt >= now).length,
     },
@@ -87,12 +97,9 @@ export async function GET(req: Request) {
           goalId: featured.id,
           title: featured.name,
           subtitle: featured.subtitle,
-          progress: featured.targetCents
-            ? Math.min(
-                100,
-                Math.round((featured.savedCents / featured.targetCents) * 100),
-              )
-            : 0,
+          progress: progress(featured),
+          image: featured.imageUrl,
+          targetDate: featured.targetDate, // "YYYY-MM-DD" or null
         }
       : null,
     today: todayTasks.map((t) => ({

@@ -28,8 +28,10 @@ const NewGoalDialog = forwardRef<HTMLDialogElement, { onCreate: (g: NewGoal) => 
         return;
       }
       const nextStep = String(data.get("nextStep") ?? "").trim();
+      const targetDate = String(data.get("targetDate") ?? "");
       onCreate({
         title,
+        targetDate: targetDate || undefined,
         category: data.get("category") as GoalCategory,
         owner: data.get("owner") as Person,
         nextStep: nextStep || undefined,
@@ -106,6 +108,19 @@ const NewGoalDialog = forwardRef<HTMLDialogElement, { onCreate: (g: NewGoal) => 
             <label htmlFor="goal-next">First step</label>
             <input id="goal-next" name="nextStep" type="text" maxLength={120} autoComplete="off" />
             <p className="field-hint">Optional. The smallest thing you could do next.</p>
+          </div>
+
+          <div className="field">
+            <label htmlFor="goal-date">Target date</label>
+            <input
+              id="goal-date"
+              name="targetDate"
+              type="date"
+              aria-describedby="goal-date-hint"
+            />
+            <p id="goal-date-hint" className="field-hint">
+              Optional. Featured goals show a countdown on Home.
+            </p>
           </div>
 
           <div className="dialog-actions">

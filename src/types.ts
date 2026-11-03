@@ -34,6 +34,7 @@ export interface Adventure {
   subtitle?: string;
   progress: number;
   image?: string;
+  targetDate?: string;
 }
 export type GoalCategory = "Travel" | "Home" | "Career" | "Finance" | "Life";
 export type GoalStatus = "In progress" | "Not started" | "Completed";
@@ -47,6 +48,7 @@ export interface Goal {
   nextStep?: string;
   owner: Person;
   image?: string;
+  targetDate?: string; // "YYYY-MM-DD", drives the countdown on Home
   featured?: boolean; // shown as the "next adventure" card on Home
 }
 export interface Plan {

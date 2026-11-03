@@ -4,6 +4,7 @@ import {
   text,
   integer,
   boolean,
+  date,
   timestamp,
   jsonb,
   pgEnum,
@@ -20,6 +21,13 @@ export const iconEnum = pgEnum("icon", [
   "home",
   "plane",
   "people",
+]);
+export const goalCategoryEnum = pgEnum("goal_category", [
+  "travel",
+  "home",
+  "career",
+  "finance",
+  "life",
 ]);
 export const eventKindEnum = pgEnum("event_kind", [
   "home",
@@ -118,6 +126,7 @@ export const plans = pgTable("plans", {
   steps: jsonb("steps").$type<string[]>().notNull().default([]),
 });
 
+// Every goal tracks steps; savings goals also set targetCents.
 export const goals = pgTable(
   "goals",
   {
@@ -125,13 +134,23 @@ export const goals = pgTable(
     spaceId: spaceId(),
     name: text("name").notNull(),
     subtitle: text("subtitle"),
+    category: goalCategoryEnum("category").notNull().default("life"),
+    ownerUserId: text("owner_user_id"), // null = both of you
+    stepsDone: integer("steps_done").notNull().default(0),
+    stepsTotal: integer("steps_total").notNull().default(0),
+    nextStep: text("next_step"),
+    imageUrl: text("image_url"),
+    targetDate: date("target_date", { mode: "string" }), // calendar day, drives the Home countdown
     savedCents: integer("saved_cents").notNull().default(0),
-    targetCents: integer("target_cents"),
+    targetCents: integer("target_cents"), // null = not a savings goal
     featured: boolean("featured").notNull().default(false), // the "next adventure" card on Home
+    createdAt: createdAt(),
   },
   (t) => [
     index("goals_space_idx").on(t.spaceId),
-    uniqueIndex("goals_one_featured_idx").on(t.spaceId).where(sql`${t.featured}`),
+    uniqueIndex("goals_one_featured_idx")
+      .on(t.spaceId)
+      .where(sql`${t.featured}`),
   ],
 );
 

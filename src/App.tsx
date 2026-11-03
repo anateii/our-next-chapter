@@ -89,6 +89,7 @@ export default function App() {
                         subtitle: featured.subtitle,
                         progress: goalProgress(featured),
                         image: featured.image,
+                        targetDate: featured.targetDate,
                       }
                     : null
                 }

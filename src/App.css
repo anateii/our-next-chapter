@@ -19,8 +19,8 @@
 }
 .main {
   width: 100%;
-  max-width: 1280px;
-  padding: 24px clamp(16px, 3vw, 40px) 48px;
+  min-width: 0;
+  padding: 24px clamp(16px, 3vw, 56px) 48px;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -33,8 +33,10 @@
   border-radius: var(--radius-md);
   transition: box-shadow var(--dur) var(--ease);
 }
-.card:hover {
-  box-shadow: var(--shadow-card);
+@media (hover: hover) {
+  .card:hover {
+    box-shadow: var(--shadow-card);
+  }
 }
 .text-link {
   font-size: 14px;
@@ -104,8 +106,10 @@
   place-items: center;
   transition: background var(--dur) var(--ease);
 }
-.icon-btn:hover {
-  background: #ecebf5;
+@media (hover: hover) {
+  .icon-btn:hover {
+    background: #ecebf5;
+  }
 }
 .badge-dot {
   position: absolute;
@@ -189,13 +193,18 @@
     background var(--dur) var(--ease),
     color var(--dur) var(--ease);
 }
-.nav-link:hover {
-  background: #ecebf5;
+@media (hover: hover) {
+  .nav-link:hover {
+    background: #ecebf5;
+  }
 }
 .nav-link.active {
   background: var(--accent-soft);
   color: var(--accent);
   font-weight: 600;
+}
+.mobile-only {
+  display: none;
 }
 .sidebar-footer {
   margin-top: auto;
@@ -347,7 +356,7 @@
 .adventure {
   flex: 3 1 440px;
   position: relative;
-  min-height: 280px;
+  min-height: clamp(280px, 20vw, 420px);
   border-radius: var(--radius-lg);
   overflow: hidden;
   display: flex;
@@ -440,39 +449,138 @@
   color: #fff;
   background: rgba(20, 24, 40, 0.75);
 }
-.quote-card {
+/* Countdown: a standard .card.panel sitting beside the adventure card */
+.countdown {
   flex: 2 1 280px;
-  min-height: 280px;
-  margin: 0;
-  padding: 32px;
-  position: relative;
-  border-radius: var(--radius-lg);
-  background: var(--blush);
+  min-height: clamp(280px, 20vw, 420px);
+}
+.countdown-done {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  gap: 2px;
+  margin: auto 0;
+}
+.countdown-done strong {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.countdown-done span {
+  font-size: 15px;
+  color: var(--muted);
+}
+
+/* Flip cards: three columns sized off the card's width via container units */
+.flips {
+  --gap: 12px;
+  container-type: inline-size;
+  margin: auto 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--gap);
+}
+.flip-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 8px;
 }
-.quote-mark {
-  font-family: var(--font-serif);
-  font-size: 64px;
-  line-height: 0.6;
-  color: #b9a9b6;
+.flip {
+  --h: min(calc((100cqi - 2 * var(--gap)) / 3 * 0.88), 124px);
+  position: relative;
+  width: 100%;
+  height: var(--h);
+  border-radius: 14px;
+  /* Layered drop shadow: tight contact shadow + soft ambient lift */
+  box-shadow:
+    0 1px 2px rgba(59, 59, 168, 0.12),
+    0 6px 14px rgba(59, 59, 168, 0.12),
+    0 14px 28px -8px rgba(28, 27, 46, 0.18);
+  perspective: calc(var(--h) * 4);
+  font-size: calc(var(--h) * 0.46);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-strong);
 }
-.quote-card blockquote {
-  margin: 0;
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-size: clamp(30px, 2.6vw, 38px);
-  line-height: 1.2;
-  text-align: center;
-  color: #3a3346;
-}
-.quote-heart {
+.flip-half {
   position: absolute;
-  right: 24px;
-  bottom: 22px;
-  color: #fff;
+  left: 0;
+  right: 0;
+  height: 50%;
+  overflow: hidden;
+  backface-visibility: hidden;
+}
+.flip-half span {
+  display: block;
+  height: var(--h);
+  line-height: var(--h);
+  text-align: center;
+}
+/* Each half is shaded toward the hinge, so the card reads as two curved leaves */
+.flip-top {
+  top: 0;
+  border-radius: 14px 14px 0 0;
+  background: linear-gradient(180deg, #f7f6ff 0%, #e9e8fb 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transform-origin: bottom;
+}
+.flip-bottom {
+  bottom: 0;
+  border-radius: 0 0 14px 14px;
+  background: linear-gradient(180deg, #dcdaf6 0%, #e6e5fa 35%, #e2e1f9 100%);
+  box-shadow: inset 0 -2px 0 rgba(59, 59, 168, 0.08);
+  transform-origin: top;
+}
+.flip-bottom span {
+  transform: translateY(-50%);
+}
+/* Hinge line between the two halves */
+.flip::after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  right: 0;
+  top: calc(50% - 0.5px);
+  height: 1px;
+  background: rgba(59, 59, 168, 0.18);
+}
+.flip-flap-top {
+  z-index: 2;
+  animation: flip-top 280ms cubic-bezier(0.55, 0, 1, 0.45) forwards;
+}
+.flip-flap-bottom {
+  z-index: 2;
+  transform: rotateX(90deg);
+  animation: flip-bottom 320ms cubic-bezier(0.2, 0.8, 0.2, 1) 280ms forwards;
+}
+/* Flaps darken as they turn away from the light, then brighten as they land */
+@keyframes flip-top {
+  to {
+    transform: rotateX(-90deg);
+    filter: brightness(0.82);
+  }
+}
+@keyframes flip-bottom {
+  from {
+    filter: brightness(0.82);
+  }
+  to {
+    transform: rotateX(0deg);
+    filter: brightness(1);
+  }
+}
+.flip-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.countdown-target {
+  padding-top: 12px;
+  border-top: 1px solid var(--line-soft);
 }
 
 /* Panels */
@@ -629,8 +737,10 @@
     background var(--dur) var(--ease),
     box-shadow var(--dur) var(--ease);
 }
-.day:hover {
-  background: #f6f5fb;
+@media (hover: hover) {
+  .day:hover {
+    background: #f6f5fb;
+  }
 }
 .day.selected {
   background: var(--surface);
@@ -721,30 +831,190 @@
   color: var(--muted);
 }
 
-/* Small screens: sidebar becomes a top strip */
+/* Tablet & phone: sidebar becomes a sticky top app bar + fixed bottom nav */
 @media (max-width: 900px) {
   .layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .sidebar {
-    position: static;
+    position: sticky;
+    top: 0;
+    z-index: 30;
     height: auto;
-    padding: 16px;
+    min-height: 60px;
+    padding: calc(8px + env(safe-area-inset-top)) clamp(16px, 3vw, 56px) 8px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
     gap: 12px;
     border-right: none;
     border-bottom: 1px solid var(--line);
   }
+  .brand {
+    padding: 0;
+    font-size: 16px;
+  }
+
+  /* Bottom nav (no transform/filter on .sidebar, or it would trap position: fixed) */
   .sidebar nav {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 30;
     flex-direction: row;
-    overflow-x: auto;
+    gap: 4px;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -4px 16px rgba(28, 27, 46, 0.06);
   }
-  .nav-link {
-    flex-shrink: 0;
+  .sidebar nav .nav-link {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 56px;
+    padding: 4px 2px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    font-size: 12px;
+    white-space: nowrap;
   }
-  .sidebar-footer {
+  .sidebar nav .nav-link span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sidebar nav .nav-secondary {
     display: none;
+  }
+
+  /* App bar actions: Our Space, account, Settings as 44px icon buttons */
+  .sidebar-footer {
+    margin-top: 0;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+  }
+  .mobile-only {
+    display: flex;
+  }
+  .sidebar-footer .nav-link {
+    width: 44px;
+    min-height: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+  .sidebar-footer .nav-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .couple {
+    order: 1;
+    padding: 0 4px;
+  }
+  .couple .avatars,
+  .couple-name {
+    display: none;
+  }
+  .sidebar-footer > a[href="#settings"] {
+    order: 2;
+  }
+
+  /* Keep the last content clear of the fixed bottom nav */
+  .main {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom));
   }
   .segmented {
     margin: 0;
+  }
+}
+
+/* Phones */
+@media (max-width: 640px) {
+  .main {
+    padding-top: 16px;
+    gap: 20px;
+  }
+
+  .topbar .segmented {
+    order: 2;
+    flex: 1 1 100%;
+  }
+  .topbar .segmented button {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0 6px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .topbar-actions {
+    margin-left: auto;
+  }
+  .greeting p {
+    font-size: 15px;
+  }
+  .greeting h1 {
+    font-size: 28px;
+  }
+
+  /* Stats: 2×2 tiles, icon stacked over the number */
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .stat {
+    padding: 14px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+  }
+  .ring {
+    width: 44px;
+    height: 44px;
+  }
+
+  .hero-row {
+    gap: 12px;
+  }
+  .adventure {
+    min-height: 260px;
+  }
+  /* Text sits at the bottom on phones, so darken from the bottom up */
+  .adventure::after {
+    background: linear-gradient(
+      180deg,
+      rgba(14, 30, 40, 0) 25%,
+      rgba(14, 30, 40, 0.72) 100%
+    );
+  }
+  .adventure-body {
+    padding: 20px;
+  }
+  .adventure h2 {
+    font-size: 28px;
+  }
+  .countdown {
+    min-height: 0;
+  }
+
+  .panels {
+    gap: 12px;
+  }
+  .panel {
+    padding: 18px;
+    border-radius: var(--radius-md);
+  }
+  .week {
+    gap: 2px;
+  }
+  .day {
+    min-height: 64px;
   }
 }
