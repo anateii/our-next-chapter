@@ -21,6 +21,7 @@ export const iconEnum = pgEnum("icon", [
   "home",
   "plane",
   "people",
+  "star",
 ]);
 export const goalCategoryEnum = pgEnum("goal_category", [
   "travel",
@@ -90,7 +91,9 @@ export const milestones = pgTable(
     spaceId: spaceId(),
     title: text("title").notNull(),
     icon: iconEnum("icon").notNull().default("home"),
+    // 'Done' | 'In progress' | 'Up next' | 'Planning' | 'Date to decide'
     status: text("status").notNull().default("Planning"),
+    whenText: text("when_text"), // free text, e.g. "Spring 2027"
     position: integer("position").notNull().default(0),
   },
   (t) => [index("milestones_space_idx").on(t.spaceId)],
@@ -180,6 +183,7 @@ export const activity = pgTable(
     actorUserId: text("actor_user_id").notNull(), // Clerk user id
     // 'task_added' | 'step_added' | 'task_done' | 'goal_added' | 'goal_completed'
     // | 'goal_photo' | 'event_added' | 'expense_added' | 'savings_added' | 'settled'
+    // | 'win_added' | 'checkin_done'
     kind: text("kind").notNull(),
     title: text("title").notNull(),
     taskId: uuid("task_id"), // no foreign key: the entry outlives a deleted task
@@ -201,8 +205,26 @@ export const wins = pgTable("wins", {
   id: id(),
   spaceId: spaceId(),
   text: text("text").notNull(),
+  userId: text("user_id"), // Clerk user id of who added it
+  cheers: jsonb("cheers").$type<string[]>().notNull().default([]), // Clerk user ids
   createdAt: createdAt(),
 });
+
+// A finished weekly check-in: each person's mood and answers, by role.
+export type CheckInAnswers = Partial<
+  Record<"owner" | "partner", { mood: string; good: string; hard: string; next: string }>
+>;
+export const checkins = pgTable(
+  "checkins",
+  {
+    id: id(),
+    spaceId: spaceId(),
+    answers: jsonb("answers").$type<CheckInAnswers>().notNull(),
+    createdBy: text("created_by"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("checkins_space_created_idx").on(t.spaceId, t.createdAt)],
+);
 
 // Finances. Amounts are whole cents (euros).
 

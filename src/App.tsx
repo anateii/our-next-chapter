@@ -9,6 +9,7 @@ import Goals from "./pages/Goals";
 import Tasks from "./pages/Tasks";
 import Calendar from "./pages/Calendar";
 import Finances from "./pages/Finances";
+import Space from "./pages/Space";
 import type { NewEvent } from "./components/EventDialog";
 import Onboarding from "./pages/Onboarding";
 import type { GoalEdits } from "./components/NewGoalDialog";
@@ -45,6 +46,12 @@ import {
   type Finances as FinanceData,
 } from "./helpers/finances";
 import {
+  emptyOurSpace,
+  fromApiOurSpace,
+  type ApiOurSpace,
+  type OurSpace,
+} from "./helpers/ourspace";
+import {
   applyEdits,
   byDue,
   daysFromToday,
@@ -56,14 +63,15 @@ import {
   type TaskEdits,
 } from "./helpers/tasks";
 
-// Tiny hash router: #goals, #tasks and #calendar open their pages; any other
-// hash stays on Home.
-type Page = "home" | "goals" | "tasks" | "calendar" | "finances";
+// Tiny hash router: #goals, #tasks, #calendar, #finances and #space open their
+// pages; any other hash stays on Home.
+type Page = "home" | "goals" | "tasks" | "calendar" | "finances" | "space";
 const pages: Record<string, Page> = {
   "#goals": "goals",
   "#tasks": "tasks",
   "#calendar": "calendar",
   "#finances": "finances",
+  "#space": "space",
 };
 const activeLabel: Record<Page, string> = {
   home: "Home",
@@ -71,6 +79,7 @@ const activeLabel: Record<Page, string> = {
   tasks: "Tasks",
   calendar: "Calendar",
   finances: "Finances",
+  space: "Our Space",
 };
 
 // How long an Undo toast stays up; deletes wait this long before reaching the API.
@@ -125,6 +134,9 @@ export default function App() {
   const [checkInDay, setCheckInDay] = useState("Sunday");
   // Savings funds, shared expenses, settle-ups and the budget.
   const [finances, setFinances] = useState<FinanceData>(emptyFinances);
+  // Our Space: roadmap, wins and check-ins, plus the focus line.
+  const [ourSpace, setOurSpace] = useState<OurSpace>(emptyOurSpace);
+  const [focus, setFocus] = useState("");
   const [members, setMembers] = useState<ApiMember[]>([]);
   const [spaceName, setSpaceName] = useState("");
   const [dataLoaded, setDataLoaded] = useState(false);
@@ -216,6 +228,7 @@ export default function App() {
       ),
       api<{ events: ApiEvent[] }>("/events"),
       api<ApiFinances>("/finances"),
+      api<ApiOurSpace>("/ourspace"),
       // The feed is extra: if it fails, show the rest without it.
       loadActivity().catch((err): ActivityRes => {
         console.warn("Loading activity failed:", err);
@@ -223,7 +236,7 @@ export default function App() {
       }),
     ]);
   };
-  const showAll = ([home, res, all, cal, money, feed]: Awaited<
+  const showAll = ([home, res, all, cal, money, space, feed]: Awaited<
     ReturnType<typeof loadAll>
   >) => {
     showActivity(feed);
@@ -245,6 +258,8 @@ export default function App() {
     );
     setCheckInDay(home.space.checkInDay);
     setFinances(fromApiFinances(money, home.members));
+    setFocus(home.space.focus ?? "");
+    setOurSpace(fromApiOurSpace(space, home.members));
   };
 
   // Load the space's data once there is a space.
@@ -766,6 +781,24 @@ export default function App() {
                 me={me}
                 members={members}
                 goals={goals}
+              />
+            )}
+            {page === "space" && (
+              <Space
+                data={ourSpace}
+                setData={setOurSpace}
+                api={api}
+                notify={setToast}
+                me={me}
+                members={members}
+                focus={focus}
+                onFocus={setFocus}
+                checkInDay={checkInDay}
+                countdown={
+                  featured?.targetDate
+                    ? { title: featured.title, targetDate: featured.targetDate }
+                    : undefined
+                }
               />
             )}
             {page === "calendar" && (

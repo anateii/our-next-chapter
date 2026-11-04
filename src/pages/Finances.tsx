@@ -23,6 +23,7 @@ import {
   type Partner,
 } from "../helpers/finances";
 import Avatars from "../components/Avatars";
+import GoalMenu from "../components/GoalMenu";
 import InfoTip from "../components/InfoTip";
 import ScrollFade from "../components/ScrollFade";
 import {
@@ -409,7 +410,7 @@ export default function Finances({
       </section>
 
       <div className="fin-two">
-        <section className="card fin-panel" aria-labelledby="funds-title">
+        <section className="card fin-panel fin-funds" aria-labelledby="funds-title">
           <div className="fin-panel-head">
             <div className="fin-title">
               <h2 id="funds-title">Savings funds</h2>
@@ -425,8 +426,8 @@ export default function Finances({
           {data.funds.length === 0 ? (
             <p className="empty">No funds yet. Start one for the flat, a trip, or a rainy day.</p>
           ) : (
-            // More than 3 funds: the rest scroll inside the card.
-            <ScrollFade className="funds" visible={3} label="Savings funds">
+            // As tall as the budget card beside it; funds that don't fit scroll inside.
+            <ScrollFade className="funds" fill label="Savings funds">
               {data.funds.map((f) => {
                 const by = savedIn(f.id, data.contributions);
                 const total = by.owner + by.partner;
@@ -450,14 +451,13 @@ export default function Finances({
                           {f.monthlyCents > 0 && <span>{formatWhole(f.monthlyCents)} a month</span>}
                         </span>
                       </button>
-                      <button
-                        type="button"
-                        className="btn-ghost"
-                        aria-label={`Add money to ${f.name}`}
-                        onClick={() => openSavings(f.id)}
-                      >
-                        <Plus aria-hidden="true" size={16} /> Add
-                      </button>
+                      <GoalMenu
+                        label={`More options for ${f.name}`}
+                        actions={[
+                          { label: "Add money", onSelect: () => openSavings(f.id) },
+                          { label: "Edit fund", onSelect: () => openFund(f) },
+                        ]}
+                      />
                     </div>
                     <div className="fund-nums">
                       <span>

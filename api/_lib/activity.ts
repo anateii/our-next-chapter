@@ -12,7 +12,9 @@ export type ActivityKind =
   | "event_added"
   | "expense_added"
   | "savings_added"
-  | "settled";
+  | "settled"
+  | "win_added"
+  | "checkin_done";
 
 // Record something one of you did. Best effort: a missing feed entry must
 // never fail the change itself.

@@ -5,6 +5,8 @@ import {
   Handshake,
   Heart,
   Image,
+  MessagesSquare,
+  PartyPopper,
   PiggyBank,
   Plus,
   Trophy,
@@ -30,6 +32,8 @@ const kinds: Record<ApiActivity["kind"], { icon: LucideIcon; tone: string }> = {
   expense_added: { icon: Wallet, tone: "peach" },
   savings_added: { icon: PiggyBank, tone: "sage" },
   settled: { icon: Handshake, tone: "sage" },
+  win_added: { icon: PartyPopper, tone: "peach" },
+  checkin_done: { icon: MessagesSquare, tone: "accent" },
 };
 
 const time = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" });
@@ -103,6 +107,10 @@ function Sentence({ a, goal }: Readonly<{ a: ApiActivity; goal?: Goal }>) {
       return <>saved {t}</>;
     case "settled":
       return <>settled up ({a.title})</>;
+    case "win_added":
+      return <>celebrated a win: {t}</>;
+    case "checkin_done":
+      return <>saved your weekly check-in</>;
   }
 }
 
@@ -201,7 +209,7 @@ export default function RecentActivity({
                       className={[
                         "activity-item",
                         isNew(a) && "is-new",
-                        a.kind === "goal_completed" && "win",
+                        (a.kind === "goal_completed" || a.kind === "win_added") && "win",
                       ]
                         .filter(Boolean)
                         .join(" ")}

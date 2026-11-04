@@ -120,11 +120,29 @@
 }
 
 /* Panels */
+/* Savings funds and Shared budget: same width, same height. The budget sets
+   the height; the funds list fills its card to match and scrolls inside. */
 .fin-two {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
-  align-items: start;
+  align-items: stretch;
+}
+@media (min-width: 1101px) {
+  /* Start the funds list (and its wrapper) at 0px so it doesn't make the row
+     taller; it then grows to fill the card. `flex: 1` alone starts at 0%,
+     which in an auto-height card falls back to the full content height. */
+  .fin-funds .scroll-fade.fill,
+  .fin-funds .scroll-fade.fill > .scrolls {
+    flex-basis: 0px;
+    height: 0;
+  }
+}
+@media (max-width: 1100px) {
+  /* Stacked: the funds get their own height, up to about three funds. */
+  .fin-funds .scroll-fade.fill > .scrolls {
+    max-height: 560px;
+  }
 }
 .card.fin-panel {
   min-width: 0;
@@ -169,6 +187,10 @@
   justify-content: space-between;
   gap: 12px;
 }
+.fund-top .icon-btn {
+  margin: -6px -10px 0 0;
+  color: var(--muted);
+}
 .fund-name {
   min-width: 0;
   padding: 0;
@@ -209,6 +231,9 @@
   font-weight: 600;
 }
 .fund-nums {
+  /* When there are few funds, each card stretches to fill the panel: keep the
+     name at the top and the figures, bar and legend at the bottom. */
+  margin-top: auto;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
