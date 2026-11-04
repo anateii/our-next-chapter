@@ -40,8 +40,8 @@ function FieldError({ id, children }: Readonly<{ id: string; children: string }>
 
 // Preview mode (dev only, see App.tsx) answers requests locally so every
 // screen can be clicked through without creating anything.
-const fakeResponse = (path: string) =>
-  path === "/invites"
+const fakeResponse = (init?: RequestInit) =>
+  String(init?.body ?? "").includes('"invite"')
     ? { code: "PREVIEW1", expiresAt: new Date(Date.now() + 7 * 86_400_000).toISOString() }
     : {};
 
@@ -54,7 +54,7 @@ export default function Onboarding({
   const realApi = useApi();
   const api = <T,>(path: string, init?: RequestInit): Promise<T> =>
     preview
-      ? new Promise((resolve) => setTimeout(() => resolve(fakeResponse(path) as T), 700))
+      ? new Promise((resolve) => setTimeout(() => resolve(fakeResponse(init) as T), 700))
       : realApi<T>(path, init);
   const { user } = useUser();
   const { signOut } = useClerk();
@@ -104,7 +104,10 @@ export default function Onboarding({
   const createInvite = () => {
     setInvite(null);
     setInviteFailed(false);
-    api<Omit<Invite, "daysLeft">>("/invites", { method: "POST" })
+    api<Omit<Invite, "daysLeft">>("/space", {
+      method: "POST",
+      body: JSON.stringify({ action: "invite" }),
+    })
       .then((inv) =>
         setInvite({
           ...inv,
@@ -120,9 +123,10 @@ export default function Onboarding({
     setBusy(true);
     setFormError("");
     try {
-      await api("/spaces", {
+      await api("/space", {
         method: "POST",
         body: JSON.stringify({
+          action: "create",
           name: spaceName.trim() || `${trimmedName} & partner`,
           displayName: trimmedName,
         }),
@@ -149,9 +153,9 @@ export default function Onboarding({
     setBusy(true);
     setFormError("");
     try {
-      await api("/join", {
+      await api("/space", {
         method: "POST",
-        body: JSON.stringify({ code, displayName: trimmedName }),
+        body: JSON.stringify({ action: "join", code, displayName: trimmedName }),
       });
       goTo("done");
     } catch (err) {

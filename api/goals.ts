@@ -18,14 +18,14 @@ const isDay = (v: unknown): v is string =>
   new Date(`${v}T00:00:00Z`).toISOString().startsWith(v);
 
 // imageUrl from the client -> the Blob pathname to store, or an error.
-// Must be a /api/photo URL (from POST /api/upload) for this space's folder, so a
+// Must be a /api/photos URL (from POST /api/photos) for this space's folder, so a
 // goal can't point at arbitrary hosts or another space's files.
 const parseImage = (v: unknown, spaceId: string): { path: string | null } | { error: string } => {
   if (v === null) return { path: null };
   const path = typeof v === "string" ? photoPath(v) : null;
   return isSpacePhoto(path, spaceId)
     ? { path }
-    : { error: "imageUrl must be a photo uploaded with /api/upload, or null" };
+    : { error: "imageUrl must be a photo uploaded with /api/photos, or null" };
 };
 
 const toClient = (g: typeof goals.$inferSelect) => ({
@@ -67,7 +67,7 @@ export async function GET(req: Request) {
 
 // Create a goal:
 // { title, category?, ownerUserId?: string | null, nextStep?, targetDate?: "YYYY-MM-DD",
-//   targetCents?, imageUrl?: url from /api/upload }
+//   targetCents?, imageUrl?: url from /api/photos }
 export async function POST(req: Request) {
   const { me, error } = await auth(req);
   if (error) return error;
@@ -128,7 +128,7 @@ type GoalChanges = { [K in keyof GoalInsert]?: GoalInsert[K] | SQL };
 
 // Update a goal. Every field is optional; only the ones sent change:
 // { id, title?, category?, ownerUserId?: string | null, nextStep?: string | null,
-//   targetDate?: "YYYY-MM-DD" | null, imageUrl?: url from /api/upload | null,
+//   targetDate?: "YYYY-MM-DD" | null, imageUrl?: url from /api/photos | null,
 //   featured?: true, completed?: true }
 export async function PATCH(req: Request) {
   const { me, error } = await auth(req);

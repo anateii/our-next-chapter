@@ -40,7 +40,7 @@ export default function PhotoField({
     setLocalPreview(local);
     setUploading(true);
     try {
-      const res = await api<{ url: string }>("/upload", {
+      const res = await api<{ url: string }>("/photos", {
         method: "POST",
         body: photo,
         headers: { "content-type": photo.type },

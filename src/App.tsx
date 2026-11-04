@@ -188,7 +188,7 @@ export default function App() {
   useEffect(() => {
     if (!isSignedIn) return;
     let cancelled = false;
-    api<{ space: unknown }>("/me")
+    api<{ space: unknown }>("/space")
       .then(
         ({ space }) => !cancelled && setSpaceState(space ? "ready" : "none"),
       )
