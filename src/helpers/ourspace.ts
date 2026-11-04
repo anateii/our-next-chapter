@@ -5,6 +5,8 @@ import type { Partner } from "./finances";
 // Keep in step with api/ourspace.ts.
 export const statuses = ["Done", "In progress", "Up next", "Planning", "Date to decide"] as const;
 export type MilestoneStatus = (typeof statuses)[number];
+// "In progress" -> "in-progress", for the status-* colour classes
+export const statusSlug = (s: string) => s.toLowerCase().replaceAll(" ", "-");
 export const milestoneIcons: { key: MilestoneIcon; label: string; icon: LucideIcon }[] = [
   { key: "home", label: "Home", icon: House },
   { key: "job", label: "Work", icon: Briefcase },
@@ -29,7 +31,14 @@ export type CheckInAnswers = Partial<Record<Partner, CheckInAnswer>>;
 
 // What GET /api/ourspace returns.
 export interface ApiOurSpace {
-  milestones: { id: string; title: string; icon: MilestoneIcon; status: string; when: string | null }[];
+  milestones: {
+    id: string;
+    title: string;
+    icon: MilestoneIcon;
+    emoji: string | null;
+    status: string;
+    when: string | null;
+  }[];
   wins: { id: string; text: string; userId: string | null; cheers: string[]; at: string }[];
   checkins: { id: string; answers: CheckInAnswers; at: string }[];
 }
@@ -37,7 +46,8 @@ export interface ApiOurSpace {
 export interface Milestone {
   id: string;
   title: string;
-  icon: MilestoneIcon;
+  icon: MilestoneIcon; // shown when there's no emoji (milestones from before emojis)
+  emoji?: string;
   status: MilestoneStatus;
   when?: string;
 }
@@ -70,6 +80,7 @@ export const fromApiOurSpace = (s: ApiOurSpace, members: readonly ApiMember[]): 
     id: m.id,
     title: m.title,
     icon: m.icon,
+    emoji: m.emoji ?? undefined,
     status: (statuses as readonly string[]).includes(m.status) ? (m.status as MilestoneStatus) : "Planning",
     when: m.when ?? undefined,
   })),

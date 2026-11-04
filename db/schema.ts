@@ -94,6 +94,7 @@ export const milestones = pgTable(
     spaceId: spaceId(),
     title: text("title").notNull(),
     icon: iconEnum("icon").notNull().default("home"),
+    emoji: text("emoji"), // chosen in the emoji picker; shown instead of `icon` when set
     // 'Done' | 'In progress' | 'Up next' | 'Planning' | 'Date to decide'
     status: text("status").notNull().default("Planning"),
     whenText: text("when_text"), // free text, e.g. "Spring 2027"

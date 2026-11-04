@@ -318,18 +318,38 @@
   border: 1px solid var(--line);
   background: var(--surface-sunken);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
 }
+/* The milestone's emoji: tap to choose another */
 .ob-road-num {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
-  border-radius: 11px;
+  border: 1px solid transparent;
+  border-radius: 12px;
   display: grid;
   place-items: center;
   background: var(--accent-soft);
   color: var(--accent);
+  transition: border-color var(--dur) var(--ease);
+}
+@media (hover: hover) {
+  .ob-road-num:hover {
+    border-color: var(--accent);
+  }
+}
+.ob-road-num[aria-expanded="true"] {
+  border-color: var(--accent);
+}
+.ob-road-picker {
+  flex: 1 1 100%;
+  padding-right: 6px;
+}
+.ob-chip-emoji {
+  font-size: 16px;
+  line-height: 1;
 }
 .ob-road-body {
   flex: 1;

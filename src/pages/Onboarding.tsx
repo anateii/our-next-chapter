@@ -17,7 +17,8 @@ import {
 } from "lucide-react";
 import { useApi } from "../helpers/api";
 import { frequencies, nextCheckIn, weekdays, type CheckInEvery } from "../helpers/checkins";
-import { iconOf, type MilestoneIcon } from "../helpers/ourspace";
+import type { MilestoneIcon } from "../helpers/ourspace";
+import EmojiPicker, { MilestoneMark } from "../components/EmojiPicker";
 import "./Onboarding.css";
 
 type Step = "welcome" | "create" | "focus" | "roadmap" | "checkin" | "invite" | "join" | "done";
@@ -25,15 +26,16 @@ type Step = "welcome" | "create" | "focus" | "roadmap" | "checkin" | "invite" | 
 const createSteps: Step[] = ["create", "focus", "roadmap", "checkin", "invite"];
 const stepOf = (s: Step) => `Step ${createSteps.indexOf(s) + 1} of ${createSteps.length}`;
 
-type DraftMilestone = { key: string; title: string; icon: MilestoneIcon; when: string };
+type DraftMilestone = { key: string; title: string; icon: MilestoneIcon; emoji?: string; when: string };
 const MAX_MILESTONES = 8;
-// Tap to add; they can be renamed and re-iconed later in Our Space.
-const suggestions: { title: string; icon: MilestoneIcon }[] = [
-  { title: "Move in together", icon: "home" },
-  { title: "New job", icon: "job" },
-  { title: "Driving licence", icon: "car" },
-  { title: "A big trip", icon: "plane" },
-  { title: "Adopt a pet", icon: "star" },
+// Tap to add, each with an emoji; both can be changed here or later in Our Space.
+// `icon` is the fallback the API keeps alongside the emoji.
+const suggestions: { title: string; icon: MilestoneIcon; emoji: string }[] = [
+  { title: "Move in together", icon: "home", emoji: "🏠" },
+  { title: "New job", icon: "job", emoji: "💼" },
+  { title: "Driving licence", icon: "car", emoji: "🚗" },
+  { title: "A big trip", icon: "plane", emoji: "✈️" },
+  { title: "Adopt a pet", icon: "star", emoji: "🐶" },
 ];
 const longDay = new Intl.DateTimeFormat(undefined, { weekday: "long", day: "numeric", month: "long" });
 type Invite = { code: string; expiresAt: string; daysLeft: number };
@@ -152,10 +154,18 @@ export default function Onboarding({
 
   const hasMilestone = (title: string) =>
     roadmap.some((m) => m.title.toLowerCase() === title.trim().toLowerCase());
-  const addMilestone = (title: string, icon: MilestoneIcon = "star") => {
+  const addMilestone = (title: string, icon: MilestoneIcon = "star", emoji?: string) => {
     const t = title.trim();
     if (!t || hasMilestone(t) || roadmap.length >= MAX_MILESTONES) return;
-    setRoadmap((r) => [...r, { key: crypto.randomUUID(), title: t, icon, when: "" }]);
+    setRoadmap((r) => [...r, { key: crypto.randomUUID(), title: t, icon, emoji, when: "" }]);
+  };
+  const setEmoji = (key: string, emoji?: string) =>
+    setRoadmap((r) => r.map((m) => (m.key === key ? { ...m, emoji } : m)));
+  // The roadmap row whose emoji picker is open (one at a time).
+  const [picking, setPicking] = useState<string | null>(null);
+  const closePicker = (key: string) => {
+    setPicking(null);
+    requestAnimationFrame(() => document.querySelector<HTMLElement>(`[aria-controls="ob-emoji-${key}"]`)?.focus());
   };
   const removeMilestone = (key: string) => setRoadmap((r) => r.filter((m) => m.key !== key));
   const moveMilestone = (index: number, by: -1 | 1) =>
@@ -167,7 +177,7 @@ export default function Onboarding({
   const toggleSuggestion = (sug: (typeof suggestions)[number]) => {
     const found = roadmap.find((m) => m.title.toLowerCase() === sug.title.toLowerCase());
     if (found) removeMilestone(found.key);
-    else addMilestone(sug.title, sug.icon);
+    else addMilestone(sug.title, sug.icon, sug.emoji);
   };
 
   // Creates the space with everything from the steps before, in one request.
@@ -185,7 +195,7 @@ export default function Onboarding({
           focus: focus.trim(),
           checkInDay,
           checkInEvery: every,
-          milestones: roadmap.map((m) => ({ title: m.title, icon: m.icon, when: m.when.trim() })),
+          milestones: roadmap.map((m) => ({ title: m.title, icon: m.icon, emoji: m.emoji, when: m.when.trim() })),
         }),
       });
       goTo("invite");
@@ -465,7 +475,6 @@ export default function Onboarding({
           <legend>Suggestions</legend>
           <div className="ob-chips">
             {suggestions.map((sug) => {
-              const Icon = iconOf(sug.icon);
               const on = hasMilestone(sug.title);
               return (
                 <button
@@ -476,7 +485,13 @@ export default function Onboarding({
                   disabled={!on && full}
                   onClick={() => toggleSuggestion(sug)}
                 >
-                  {on ? <Check aria-hidden="true" size={16} strokeWidth={2.6} /> : <Icon aria-hidden="true" size={16} />}
+                  {on ? (
+                    <Check aria-hidden="true" size={16} strokeWidth={2.6} />
+                  ) : (
+                    <span className="ob-chip-emoji" aria-hidden="true">
+                      {sug.emoji}
+                    </span>
+                  )}
                   {sug.title}
                 </button>
               );
@@ -522,12 +537,19 @@ export default function Onboarding({
         {roadmap.length > 0 && (
           <ol className="ob-roadmap" aria-label="Your roadmap">
             {roadmap.map((m, i) => {
-              const Icon = iconOf(m.icon);
+              const open = picking === m.key;
               return (
                 <li key={m.key}>
-                  <span className="ob-road-num" aria-hidden="true">
-                    <Icon size={18} />
-                  </span>
+                  <button
+                    type="button"
+                    className="ob-road-num"
+                    aria-label={`${m.emoji ? `Emoji: ${m.emoji}` : "No emoji yet"}. Choose an emoji for ${m.title}`}
+                    aria-expanded={open}
+                    aria-controls={`ob-emoji-${m.key}`}
+                    onClick={() => setPicking(open ? null : m.key)}
+                  >
+                    <MilestoneMark emoji={m.emoji} icon={m.icon} size={18} />
+                  </button>
                   <div className="ob-road-body">
                     <span className="ob-road-title">{m.title}</span>
                     <label className="sr-only" htmlFor={`ob-when-${m.key}`}>
@@ -573,6 +595,25 @@ export default function Onboarding({
                       <X aria-hidden="true" size={18} />
                     </button>
                   </div>
+                  {open && (
+                    <div id={`ob-emoji-${m.key}`} className="ob-road-picker">
+                      <EmojiPicker
+                        onPick={(emoji) => {
+                          setEmoji(m.key, emoji);
+                          closePicker(m.key);
+                        }}
+                        onClose={() => closePicker(m.key)}
+                        onClear={
+                          m.emoji
+                            ? () => {
+                                setEmoji(m.key, undefined);
+                                closePicker(m.key);
+                              }
+                            : undefined
+                        }
+                      />
+                    </div>
+                  )}
                 </li>
               );
             })}

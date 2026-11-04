@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, max } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, max } from "drizzle-orm";
 import { db } from "../db/client.js";
 import {
   checkins,
@@ -9,13 +9,14 @@ import {
   type CheckInAnswers,
 } from "../db/schema.js";
 import { getUserId, json } from "./_lib/auth.js";
-import { getMembership } from "./_lib/space.js";
+import { getMembership, isEmoji } from "./_lib/space.js";
 import { logActivity } from "./_lib/activity.js";
 
 // Everything on the Our Space page goes through this one endpoint (the Vercel
 // Hobby plan allows 12 functions). Writes say what they're about with `type`:
 //   POST   { type: "milestone" | "win" | "checkin", ... }
 //   PATCH  { type: "milestone" | "win", id, ... }  or  { type: "space", focus }
+//          { type: "roadmap", milestones: [{ id, title, icon, emoji, status, when }], deleted: [id] }
 //   DELETE ?type=milestone|win|checkin&id=...
 
 // Keep in step with src/helpers/ourspace.ts.
@@ -53,6 +54,7 @@ const toMilestone = (m: typeof milestones.$inferSelect) => ({
   id: m.id,
   title: m.title,
   icon: m.icon,
+  emoji: m.emoji,
   status: m.status,
   when: m.whenText,
 });
@@ -103,6 +105,7 @@ async function addMilestone(me: Me, b: Body) {
       spaceId: me.spaceId,
       title,
       icon: oneOf(ICONS, b.icon) ? b.icon : "star",
+      emoji: isEmoji(b.emoji) ? b.emoji : null,
       status: oneOf(STATUSES, b.status) ? b.status : "Planning",
       whenText: optStr(b.when, 40) ?? null,
       position: (last ?? -1) + 1,
@@ -126,6 +129,10 @@ async function editMilestone(me: Me, id: string, b: Body) {
     if (!oneOf(ICONS, b.icon)) return bad(`icon must be one of: ${ICONS.join(", ")}`);
     set.icon = b.icon;
   }
+  if ("emoji" in b) {
+    if (b.emoji !== null && !isEmoji(b.emoji)) return bad("emoji must be a single emoji or null");
+    set.emoji = b.emoji;
+  }
   if ("when" in b) {
     const when = optStr(b.when, 40);
     if (when === undefined) return bad("when must be at most 40 characters");
@@ -138,6 +145,73 @@ async function editMilestone(me: Me, id: string, b: Body) {
     .where(and(eq(milestones.id, id), eq(milestones.spaceId, me.spaceId)))
     .returning();
   return m ? json({ milestone: toMilestone(m) }) : notFound();
+}
+
+// The Edit roadmap dialog: the milestones it showed, in their new order, with
+// their names, emojis, statuses and timing, plus the ids it deleted. Only
+// those are deleted: a milestone added meanwhile (say, by your partner) isn't
+// in either list, so it's kept and placed after the others. One transaction.
+async function saveRoadmap(me: Me, b: Body) {
+  if (!Array.isArray(b.milestones)) return bad("milestones must be a list");
+  const deleted = b.deleted ?? [];
+  if (!Array.isArray(deleted) || deleted.some((d) => typeof d !== "string"))
+    return bad("deleted must be a list of milestone ids");
+  const rows: {
+    id: string;
+    title: string;
+    icon: (typeof ICONS)[number];
+    emoji: string | null;
+    status: (typeof STATUSES)[number];
+    whenText: string | null;
+  }[] = [];
+  for (const m of b.milestones as Body[]) {
+    const title = str(m?.title, 60);
+    const when = optStr(m?.when ?? null, 40);
+    if (
+      typeof m?.id !== "string" ||
+      !title ||
+      when === undefined ||
+      !oneOf(ICONS, m.icon) ||
+      !oneOf(STATUSES, m.status) ||
+      (m.emoji != null && !isEmoji(m.emoji))
+    )
+      return bad("each milestone needs an id, a title (1-60), an icon, a status and an optional when (up to 40)");
+    rows.push({ id: m.id, title, icon: m.icon, emoji: (m.emoji as string | null | undefined) ?? null, status: m.status, whenText: when });
+  }
+  const ids = rows.map((r) => r.id);
+  if (new Set(ids).size !== ids.length) return bad("a milestone is listed twice");
+  const gone = new Set(deleted as string[]);
+  if (ids.some((id) => gone.has(id))) return bad("a milestone can't be both kept and deleted");
+
+  // Milestones the dialog didn't know about keep their order, after the edited ones.
+  const others = (
+    await db
+      .select({ id: milestones.id })
+      .from(milestones)
+      .where(eq(milestones.spaceId, me.spaceId))
+      .orderBy(asc(milestones.position))
+  ).filter((m) => !ids.includes(m.id) && !gone.has(m.id));
+
+  const inSpace = eq(milestones.spaceId, me.spaceId);
+  const queries = [
+    // A listed id that no longer exists (deleted meanwhile) just updates nothing.
+    ...(gone.size ? [db.delete(milestones).where(and(inSpace, inArray(milestones.id, [...gone])))] : []),
+    ...rows.map((r, position) =>
+      db
+        .update(milestones)
+        .set({ title: r.title, icon: r.icon, emoji: r.emoji, status: r.status, whenText: r.whenText, position })
+        .where(and(eq(milestones.id, r.id), inSpace)),
+    ),
+    ...others.map((m, i) =>
+      db
+        .update(milestones)
+        .set({ position: rows.length + i })
+        .where(and(eq(milestones.id, m.id), inSpace)),
+    ),
+  ];
+  const [first, ...rest] = queries;
+  if (first) await db.batch([first, ...rest]);
+  return json({ ok: true });
 }
 
 /* Wins */
@@ -214,6 +288,7 @@ export async function PATCH(req: Request) {
   if (error) return error;
   const b: Body = await req.json().catch(() => ({}));
   if (b.type === "space") return editSpace(me, b);
+  if (b.type === "roadmap") return saveRoadmap(me, b);
   if (typeof b.id !== "string") return bad("id is required");
   switch (b.type) {
     case "milestone":

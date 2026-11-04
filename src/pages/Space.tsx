@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { Check, Heart, MessagesSquare, Pencil } from "lucide-react";
+import { Check, Heart, MessagesSquare } from "lucide-react";
 import type { Person } from "../types";
 import type { ApiMember } from "../helpers/goals";
 import type { Partner } from "../helpers/finances";
@@ -9,26 +9,30 @@ import { checkInTitle, nextCheckIn, scheduleLabel, type CheckInSchedule } from "
 import {
   daysUntil,
   fromApiOurSpace,
-  iconOf,
   moods,
-  statuses,
+  statusSlug,
   type ApiOurSpace,
   type CheckIn,
   type CheckInAnswers,
   type Milestone,
-  type MilestoneStatus,
   type OurSpace,
   type Win,
 } from "../helpers/ourspace";
 import Avatars from "../components/Avatars";
-import { CheckInDialog, MilestoneDialog, type MilestoneFields } from "../components/SpaceDialogs";
+import GoalMenu from "../components/GoalMenu";
+import { MilestoneMark } from "../components/EmojiPicker";
+import {
+  AddMilestoneDialog,
+  CheckInDialog,
+  RoadmapDialog,
+  type MilestoneFields,
+  type RoadmapRow,
+} from "../components/SpaceDialogs";
 import "./Space.css";
 
 type Api = <T>(path: string, init?: RequestInit) => Promise<T>;
 type Notify = (t: { message: string; ok: boolean; undo?: () => void }) => void;
 
-// How long an Undo toast stays up; deletes wait this long before reaching the API.
-const UNDO_MS = 5000;
 const HISTORY_SHOWN = 3;
 
 const shortDate = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short" });
@@ -80,44 +84,18 @@ export default function Space({
   const patchSpace = (fields: Record<string, unknown>, what: string) =>
     write("PATCH", { type: "space", ...fields }).catch(failed(what));
 
-  // Deletes are hidden at once and sent after the Undo window.
-  const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
-  const unhide = (id: string) =>
-    setHidden((h) => {
-      const next = new Set(h);
-      next.delete(id);
-      return next;
-    });
-  const removeLater = (type: string, id: string, message: string) => {
-    setHidden((h) => new Set(h).add(id));
-    const timer = setTimeout(() => {
-      write("DELETE", undefined, `?type=${type}&id=${encodeURIComponent(id)}`)
-        .then(reload, failed(`Delete the ${type}`))
-        .finally(() => unhide(id));
-    }, UNDO_MS);
-    notify({
-      message,
-      ok: true,
-      undo: () => {
-        clearTimeout(timer);
-        unhide(id);
-      },
-    });
-  };
-  const shown = <T extends { id: string }>(list: readonly T[]) => list.filter((x) => !hidden.has(x.id));
-
-  const milestones = shown(data.milestones);
-  const wins = shown(data.wins);
-  const checkins = shown(data.checkins);
+  const { milestones, wins, checkins } = data;
 
   /* Dialogs */
-  const milestoneRef = useRef<HTMLDialogElement>(null);
-  const checkInRef = useRef<HTMLDialogElement>(null);
-  const [editingMilestone, setEditingMilestone] = useState<Milestone | null>(null);
-  const openMilestone = (m: Milestone) => {
-    flushSync(() => setEditingMilestone(m));
-    milestoneRef.current?.showModal();
+  const addMilestoneRef = useRef<HTMLDialogElement>(null);
+  const roadmapRef = useRef<HTMLDialogElement>(null);
+  // A fresh copy of the roadmap each time Edit roadmap opens (see RoadmapDialog).
+  const [roadmapOpenKey, setRoadmapOpenKey] = useState(0);
+  const openRoadmap = () => {
+    flushSync(() => setRoadmapOpenKey((k) => k + 1));
+    roadmapRef.current?.showModal();
   };
+  const checkInRef = useRef<HTMLDialogElement>(null);
 
   /* Focus */
   const [editingFocus, setEditingFocus] = useState(false);
@@ -141,24 +119,27 @@ export default function Space({
   /* Roadmap */
   const setMilestones = (fn: (ms: Milestone[]) => Milestone[]) =>
     setData((d) => ({ ...d, milestones: fn(d.milestones) }));
-  const addMilestone = (title: string) => {
-    setMilestones((ms) => [...ms, { id: tempId(), title, icon: "star", status: "Planning" }]);
-    write("POST", { type: "milestone", title }).then(reload, failed("Add the milestone"));
-    notify({ message: `Added “${title}” to the roadmap`, ok: true });
+  const addMilestone = (f: MilestoneFields) => {
+    setMilestones((ms) => [...ms, { id: tempId(), ...f }]);
+    write("POST", { type: "milestone", ...f, when: f.when ?? null }).then(reload, failed("Add the milestone"));
+    notify({ message: `Added “${f.title}” to the roadmap`, ok: true });
   };
-  const editMilestone = (fields: Partial<MilestoneFields>, id: string, what = "Save the milestone") => {
-    setMilestones((ms) => ms.map((m) => (m.id === id ? { ...m, ...fields } : m)));
-    const body: Record<string, unknown> = { ...fields };
-    if ("when" in fields) body.when = fields.when ?? null;
-    return patch("milestone", id, body, what);
-  };
-  const setStatus = (m: Milestone, status: MilestoneStatus) => {
-    void editMilestone({ status }, m.id, "Change the status");
-    notify({
-      message: status === "Done" ? `${m.title}: done!` : `${m.title}: ${status.toLowerCase()}`,
-      ok: true,
-      undo: () => void editMilestone({ status: m.status }, m.id, "Undo"),
+  // Edit roadmap: names, icons, timing and order in one go; left-out ones are deleted.
+  // Edit roadmap: names, emojis, statuses, timing and order in one go, plus
+  // the ones deleted there. Milestones added meanwhile are kept, after these.
+  const saveRoadmap = (rows: RoadmapRow[], deleted: string[]) => {
+    setMilestones((ms) => {
+      const edited = rows.flatMap((r) => {
+        const m = ms.find((x) => x.id === r.id);
+        return m
+          ? [{ ...m, title: r.title, icon: r.icon, emoji: r.emoji, status: r.status, when: r.when || undefined }]
+          : [];
+      });
+      const others = ms.filter((m) => !rows.some((r) => r.id === m.id) && !deleted.includes(m.id));
+      return [...edited, ...others];
     });
+    write("PATCH", { type: "roadmap", milestones: rows, deleted }).then(reload, failed("Save the roadmap"));
+    notify({ message: "Roadmap saved", ok: true });
   };
 
   /* Check-ins */
@@ -248,20 +229,26 @@ export default function Space({
 
       <section className="sp-focus" aria-labelledby="focus-label">
         <div className="sp-focus-main">
-          <p id="focus-label" className="sp-kicker">
-            Our current focus
-          </p>
+          <div className="sp-focus-top">
+            <p id="focus-label" className="sp-kicker">
+              Our current focus
+            </p>
+            {!editingFocus && (
+              <GoalMenu
+                label="More options for our focus"
+                actions={[
+                  { label: focus ? "Edit our focus" : "Write our focus", onSelect: () => setEditingFocus(true) },
+                  ...(focus ? [{ label: "Clear focus", onSelect: () => saveFocus("") }] : []),
+                ]}
+              />
+            )}
+          </div>
           {editingFocus ? (
             <FocusEditor initial={focus} onSave={saveFocus} onCancel={() => setEditingFocus(false)} />
           ) : (
-            <>
-              <h2 className={focus ? "" : "sp-focus-empty"}>
-                {focus || "What are you working toward together right now?"}
-              </h2>
-              <button type="button" className="sp-on-hero" onClick={() => setEditingFocus(true)}>
-                <Pencil aria-hidden="true" size={15} /> {focus ? "Edit our focus" : "Write our focus"}
-              </button>
-            </>
+            <h2 className={focus ? "" : "sp-focus-empty"}>
+              {focus || "What are you working toward together right now?"}
+            </h2>
           )}
         </div>
         <dl className="sp-focus-stats">
@@ -282,46 +269,47 @@ export default function Space({
 
       <section className="card sp-panel" aria-labelledby="road-title">
         <div className="sp-panel-head">
-          <h2 id="road-title">Our roadmap</h2>
-          <span className="sp-sub">The big moments, in order</span>
+          <div className="sp-title-group">
+            <h2 id="road-title">Our roadmap</h2>
+            <span className="sp-sub">The big moments, in order</span>
+          </div>
+          <GoalMenu
+            label="More options for the roadmap"
+            actions={[
+              { label: "Add milestone", onSelect: () => addMilestoneRef.current?.showModal() },
+              {
+                label: "Edit roadmap",
+                onSelect: openRoadmap,
+                // Wait until new milestones are saved and have their real ids.
+                disabled: milestones.length === 0 || milestones.some((m) => isTemp(m.id)),
+              },
+            ]}
+          />
         </div>
         {milestones.length ? (
           <ol className="sp-road">
             {milestones.map((m) => {
-              const Icon = iconOf(m.icon);
-              const now = m.id === milestones.find((x) => x.status === "In progress")?.id;
               return (
-                <li key={m.id} className={["sp-stop", m.status === "Done" && "done", now && "now"].filter(Boolean).join(" ")}>
+                <li key={m.id} className={m.status === "Done" ? "sp-stop done" : "sp-stop"}>
                   <span className="sp-stop-dot" aria-hidden="true">
-                    {m.status === "Done" ? <Check size={20} strokeWidth={2.6} /> : <Icon size={20} />}
+                    {m.status === "Done" && !m.emoji ? (
+                      <Check size={20} strokeWidth={2.6} />
+                    ) : (
+                      <MilestoneMark emoji={m.emoji} icon={m.icon} size={20} />
+                    )}
+                    {m.status === "Done" && m.emoji && (
+                      <span className="sp-done-tick">
+                        <Check size={11} strokeWidth={3.2} />
+                      </span>
+                    )}
                   </span>
                   <div className="sp-stop-body">
-                    <h3>
-                      <button
-                        type="button"
-                        className="sp-stop-title"
-                        onClick={() => openMilestone(m)}
-                        disabled={isTemp(m.id)}
-                        aria-label={`Edit ${m.title}`}
-                      >
-                        {m.title}
-                      </button>
-                    </h3>
+                    <h3>{m.title}</h3>
                     <div className="sp-stop-meta">
-                      <label className="sr-only" htmlFor={`st-${m.id}`}>
-                        Status of {m.title}
-                      </label>
-                      <select
-                        id={`st-${m.id}`}
-                        className={`sp-status status-${m.status.toLowerCase().replaceAll(" ", "-")}`}
-                        value={m.status}
-                        disabled={isTemp(m.id)}
-                        onChange={(e) => setStatus(m, e.target.value as MilestoneStatus)}
-                      >
-                        {statuses.map((s) => (
-                          <option key={s}>{s}</option>
-                        ))}
-                      </select>
+                      <span className={`sp-badge status-${statusSlug(m.status)}`}>
+                        <span className="sr-only">Status: </span>
+                        {m.status}
+                      </span>
                       {m.when && <span className="sp-when">{m.when}</span>}
                     </div>
                   </div>
@@ -330,16 +318,13 @@ export default function Space({
             })}
           </ol>
         ) : (
-          <p className="empty">Add the big moments ahead, like moving in together or a new job.</p>
+          <div className="empty sp-road-empty">
+            <p>Add the big moments ahead, like moving in together or a new job.</p>
+            <button type="button" className="btn-secondary" onClick={() => addMilestoneRef.current?.showModal()}>
+              Add a milestone
+            </button>
+          </div>
         )}
-        <InlineAdd
-          id="add-milestone"
-          label="New milestone"
-          placeholder="Add a milestone, e.g. Adopt a dog"
-          maxLength={60}
-          button="Add"
-          onAdd={addMilestone}
-        />
       </section>
 
       <div className="sp-two">
@@ -439,19 +424,8 @@ export default function Space({
         </section>
       </div>
 
-
-      <MilestoneDialog
-        ref={milestoneRef}
-        milestone={editingMilestone}
-        onSave={(f, id) => {
-          void editMilestone(f, id);
-          notify({ message: "Milestone saved", ok: true });
-        }}
-        onDelete={(id) => {
-          const m = data.milestones.find((x) => x.id === id);
-          removeLater("milestone", id, `Deleted “${m?.title ?? "milestone"}”`);
-        }}
-      />
+      <AddMilestoneDialog ref={addMilestoneRef} onAdd={addMilestone} />
+      <RoadmapDialog ref={roadmapRef} milestones={milestones} openKey={roadmapOpenKey} onSave={saveRoadmap} />
       <CheckInDialog ref={checkInRef} title={checkInTitle(checkIn)} onSave={saveCheckIn} />
     </>
   );

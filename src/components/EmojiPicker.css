@@ -1,0 +1,40 @@
+/* Emoji picker (emoji-mart, native emojis) and a milestone's emoji mark. */
+
+.emoji-mark {
+  line-height: 1;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+}
+
+.emoji-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.emoji-picker em-emoji-picker {
+  width: 100%;
+  height: 340px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.emoji-picker-status {
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px dashed var(--dash-line);
+  border-radius: 14px;
+  font-size: 14px;
+  color: var(--muted);
+  text-align: center;
+  padding: 0 16px;
+}
+.emoji-picker:has(em-emoji-picker) .emoji-picker-status {
+  display: none;
+}
+.link-btn.emoji-picker-clear {
+  align-self: flex-start;
+  min-height: 36px;
+  font-size: 14px;
+}

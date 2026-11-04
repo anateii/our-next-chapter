@@ -31,3 +31,12 @@ export function dateParam(url: URL, name: string, fallback: Date) {
 
 export const addDays = (d: Date, n: number) =>
   new Date(d.getTime() + n * 24 * 60 * 60 * 1000);
+
+// One emoji (with its skin tone, ZWJ sequence, flag or keycap parts), as the
+// emoji picker sends it. Anything else (text, several emojis) is refused.
+export const isEmoji = (v: unknown): v is string =>
+  typeof v === "string" &&
+  v.length <= 32 &&
+  /^(?:[\p{Extended_Pictographic}\p{Regional_Indicator}\p{Emoji_Component}]|\u200d|\ufe0f|\u20e3)+$/u.test(v) &&
+  /[\p{Extended_Pictographic}\p{Regional_Indicator}]|\u20e3/u.test(v) &&
+  [...new Intl.Segmenter().segment(v)].length === 1;

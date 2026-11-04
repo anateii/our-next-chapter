@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { invites, members, milestones, spaces } from "../db/schema.js";
 import { getUserId, json } from "./_lib/auth.js";
+import { isEmoji } from "./_lib/space.js";
 
 // Your space and who's in it, in one endpoint (the Vercel Hobby plan allows
 // 12 functions):
@@ -47,9 +48,9 @@ const text = (v: unknown, max: number) => {
   return t && t.length <= max ? t : undefined;
 };
 
-type NewMilestone = { title: string; icon: (typeof ICONS)[number]; whenText: string | null };
+type NewMilestone = { title: string; icon: (typeof ICONS)[number]; emoji: string | null; whenText: string | null };
 
-// The roadmap from onboarding: [{ title, icon?, when? }], in order. undefined = invalid.
+// The roadmap from onboarding: [{ title, icon?, emoji?, when? }], in order. undefined = invalid.
 function parseMilestones(v: unknown): NewMilestone[] | undefined {
   if (v === undefined) return [];
   if (!Array.isArray(v) || v.length > MAX_MILESTONES) return undefined;
@@ -60,7 +61,7 @@ function parseMilestones(v: unknown): NewMilestone[] | undefined {
     const when = m.when === undefined || m.when === "" ? null : text(m.when, 40);
     if (when === undefined) return undefined;
     const icon = ICONS.includes(m.icon as NewMilestone["icon"]) ? (m.icon as NewMilestone["icon"]) : "star";
-    out.push({ title, icon, whenText: when });
+    out.push({ title, icon, emoji: isEmoji(m.emoji) ? m.emoji : null, whenText: when });
   }
   return out;
 }
