@@ -54,6 +54,9 @@ export const spaces = pgTable("spaces", {
   name: text("name").notNull(),
   focus: text("focus"),
   checkInDay: text("check_in_day").notNull().default("Sunday"),
+  // How often: 'weekly' | 'biweekly' (every other week, counted from the week
+  // the space was created) | 'monthly' (the first checkInDay of each month).
+  checkInEvery: text("check_in_every").notNull().default("weekly"),
   onboarded: boolean("onboarded").notNull().default(false),
   // How shared costs split "by income": the owner's share in percent (60 = 60/40).
   incomeSplitOwner: integer("income_split_owner").notNull().default(50),

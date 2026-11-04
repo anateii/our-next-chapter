@@ -64,6 +64,13 @@
       "when": 1793803548241,
       "tag": "0008_workable_red_wolf",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793804276254,
+      "tag": "0009_cuddly_white_queen",
+      "breakpoints": true
     }
   ]
 }

@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useClerk, useUser } from "@clerk/react";
 import {
+  ArrowDown,
   ArrowLeft,
+  ArrowUp,
   Check,
   ChevronRight,
   CircleAlert,
@@ -11,11 +13,29 @@ import {
   LoaderCircle,
   Plus,
   Share,
+  X,
 } from "lucide-react";
 import { useApi } from "../helpers/api";
+import { frequencies, nextCheckIn, weekdays, type CheckInEvery } from "../helpers/checkins";
+import { iconOf, type MilestoneIcon } from "../helpers/ourspace";
 import "./Onboarding.css";
 
-type Step = "welcome" | "create" | "invite" | "join" | "done";
+type Step = "welcome" | "create" | "focus" | "roadmap" | "checkin" | "invite" | "join" | "done";
+// Starting a space: these steps, in order, with "Step n of 5".
+const createSteps: Step[] = ["create", "focus", "roadmap", "checkin", "invite"];
+const stepOf = (s: Step) => `Step ${createSteps.indexOf(s) + 1} of ${createSteps.length}`;
+
+type DraftMilestone = { key: string; title: string; icon: MilestoneIcon; when: string };
+const MAX_MILESTONES = 8;
+// Tap to add; they can be renamed and re-iconed later in Our Space.
+const suggestions: { title: string; icon: MilestoneIcon }[] = [
+  { title: "Move in together", icon: "home" },
+  { title: "New job", icon: "job" },
+  { title: "Driving licence", icon: "car" },
+  { title: "A big trip", icon: "plane" },
+  { title: "Adopt a pet", icon: "star" },
+];
+const longDay = new Intl.DateTimeFormat(undefined, { weekday: "long", day: "numeric", month: "long" });
 type Invite = { code: string; expiresAt: string; daysLeft: number };
 
 // API error messages (api/join.ts) -> what to tell the person.
@@ -71,6 +91,12 @@ export default function Onboarding({
   const [invite, setInvite] = useState<Invite | null>(null);
   const [inviteFailed, setInviteFailed] = useState(false);
   const [copied, setCopied] = useState<"" | "code" | "message">("");
+  // What the new space starts with: focus line, roadmap, check-in schedule.
+  const [focus, setFocus] = useState("");
+  const [roadmap, setRoadmap] = useState<DraftMilestone[]>([]);
+  const [customTitle, setCustomTitle] = useState("");
+  const [every, setEvery] = useState<CheckInEvery>("weekly");
+  const [checkInDay, setCheckInDay] = useState("Sunday");
 
   const trimmedName = name.trim();
   const nameRef = useRef<HTMLInputElement>(null);
@@ -117,9 +143,36 @@ export default function Onboarding({
       .catch(() => setInviteFailed(true));
   };
 
-  const submitCreate = async (e: React.SubmitEvent<HTMLFormElement>) => {
+  // Step 1 only checks the name; the space is created after the check-in step.
+  const submitName = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!requireName("Add your name so your partner knows who started the space.")) return;
+    goTo("focus");
+  };
+
+  const hasMilestone = (title: string) =>
+    roadmap.some((m) => m.title.toLowerCase() === title.trim().toLowerCase());
+  const addMilestone = (title: string, icon: MilestoneIcon = "star") => {
+    const t = title.trim();
+    if (!t || hasMilestone(t) || roadmap.length >= MAX_MILESTONES) return;
+    setRoadmap((r) => [...r, { key: crypto.randomUUID(), title: t, icon, when: "" }]);
+  };
+  const removeMilestone = (key: string) => setRoadmap((r) => r.filter((m) => m.key !== key));
+  const moveMilestone = (index: number, by: -1 | 1) =>
+    setRoadmap((r) => {
+      const next = [...r];
+      [next[index], next[index + by]] = [next[index + by], next[index]];
+      return next;
+    });
+  const toggleSuggestion = (sug: (typeof suggestions)[number]) => {
+    const found = roadmap.find((m) => m.title.toLowerCase() === sug.title.toLowerCase());
+    if (found) removeMilestone(found.key);
+    else addMilestone(sug.title, sug.icon);
+  };
+
+  // Creates the space with everything from the steps before, in one request.
+  const submitCreate = async (e: React.SubmitEvent<HTMLFormElement>) => {
+    e.preventDefault();
     setBusy(true);
     setFormError("");
     try {
@@ -129,6 +182,10 @@ export default function Onboarding({
           action: "create",
           name: spaceName.trim() || `${trimmedName} & partner`,
           displayName: trimmedName,
+          focus: focus.trim(),
+          checkInDay,
+          checkInEvery: every,
+          milestones: roadmap.map((m) => ({ title: m.title, icon: m.icon, when: m.when.trim() })),
         }),
       });
       goTo("invite");
@@ -197,11 +254,12 @@ export default function Onboarding({
     copy(`${text} ${globalThis.location.origin}`, "message");
   };
 
-  const backButton = (
-    <button type="button" className="icon-btn ob-back" aria-label="Back" onClick={() => goTo("welcome")}>
+  const backButton = (to: Step = "welcome") => (
+    <button type="button" className="icon-btn ob-back" aria-label="Back" onClick={() => goTo(to)}>
       <ArrowLeft aria-hidden="true" size={20} />
     </button>
   );
+  const firstCheckIn = nextCheckIn({ day: checkInDay, every, since: new Date() }, []);
 
   const submitButton = (label: string, busyLabel: string) => (
     <button type="submit" className="btn-primary ob-cta" disabled={busy} aria-busy={busy}>
@@ -273,16 +331,16 @@ export default function Onboarding({
     );
   } else if (step === "create") {
     screen = (
-      <form className="ob-step" onSubmit={submitCreate} noValidate>
+      <form className="ob-step" onSubmit={submitName} noValidate>
         <div className="ob-top">
-          {backButton}
-          <span className="ob-progress">Step 1 of 2</span>
+          {backButton()}
+          <span className="ob-progress">{stepOf("create")}</span>
         </div>
         <div className="ob-intro">
           <h1 ref={headingRef} tabIndex={-1}>
             Name your space
           </h1>
-          <p>You can change both later in Settings.</p>
+          <p>You can change these later in Settings.</p>
         </div>
         <div className="field">
           <label htmlFor="ob-name">Your name</label>
@@ -322,8 +380,276 @@ export default function Onboarding({
           </p>
         </div>
         <div className="ob-actions">
+          <button type="submit" className="btn-primary ob-cta">
+            Continue
+          </button>
+        </div>
+      </form>
+    );
+  } else if (step === "focus") {
+    screen = (
+      <form
+        className="ob-step"
+        onSubmit={(e) => {
+          e.preventDefault();
+          goTo("roadmap");
+        }}
+        noValidate
+      >
+        <div className="ob-top">
+          {backButton("create")}
+          <span className="ob-progress">{stepOf("focus")}</span>
+        </div>
+        <div className="ob-intro">
+          <h1 ref={headingRef} tabIndex={-1}>
+            What are you working toward?
+          </h1>
+          <p>One line for this chapter of your life. It sits at the top of Our Space.</p>
+        </div>
+        <div className="field">
+          <label htmlFor="ob-focus">Our focus</label>
+          <textarea
+            id="ob-focus"
+            className="ob-textarea"
+            rows={3}
+            maxLength={140}
+            value={focus}
+            onChange={(e) => setFocus(e.target.value)}
+            placeholder="A home together. A job that fits. Thailand in 2027."
+            aria-describedby="ob-focus-hint"
+          />
+          <p id="ob-focus-hint" className="field-hint">
+            {140 - focus.length} characters left
+          </p>
+        </div>
+        <div className="ob-actions">
+          <button type="submit" className="btn-primary ob-cta">
+            Continue
+          </button>
+          <button
+            type="button"
+            className="ob-skip"
+            onClick={() => {
+              setFocus("");
+              goTo("roadmap");
+            }}
+          >
+            Skip for now
+          </button>
+        </div>
+      </form>
+    );
+  } else if (step === "roadmap") {
+    const full = roadmap.length >= MAX_MILESTONES;
+    screen = (
+      <form
+        className="ob-step"
+        onSubmit={(e) => {
+          e.preventDefault();
+          goTo("checkin");
+        }}
+        noValidate
+      >
+        <div className="ob-top">
+          {backButton("focus")}
+          <span className="ob-progress">{stepOf("roadmap")}</span>
+        </div>
+        <div className="ob-intro">
+          <h1 ref={headingRef} tabIndex={-1}>
+            Plan your roadmap
+          </h1>
+          <p>The big moments ahead, in the order you hope they'll happen.</p>
+        </div>
+
+        <fieldset className="ob-fieldset">
+          <legend>Suggestions</legend>
+          <div className="ob-chips">
+            {suggestions.map((sug) => {
+              const Icon = iconOf(sug.icon);
+              const on = hasMilestone(sug.title);
+              return (
+                <button
+                  key={sug.title}
+                  type="button"
+                  className="ob-chip"
+                  aria-pressed={on}
+                  disabled={!on && full}
+                  onClick={() => toggleSuggestion(sug)}
+                >
+                  {on ? <Check aria-hidden="true" size={16} strokeWidth={2.6} /> : <Icon aria-hidden="true" size={16} />}
+                  {sug.title}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+
+        <div className="field">
+          <label htmlFor="ob-milestone">Add your own</label>
+          <div className="ob-add-row">
+            <input
+              id="ob-milestone"
+              type="text"
+              maxLength={60}
+              autoComplete="off"
+              value={customTitle}
+              disabled={full}
+              onChange={(e) => setCustomTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addMilestone(customTitle);
+                  setCustomTitle("");
+                }
+              }}
+              placeholder="e.g. Learn Thai"
+            />
+            <button
+              type="button"
+              className="btn-secondary"
+              disabled={full || !customTitle.trim() || hasMilestone(customTitle)}
+              onClick={() => {
+                addMilestone(customTitle);
+                setCustomTitle("");
+              }}
+            >
+              Add
+            </button>
+          </div>
+          {full && <p className="field-hint">That's 8. You can add more later in Our Space.</p>}
+        </div>
+
+        {roadmap.length > 0 && (
+          <ol className="ob-roadmap" aria-label="Your roadmap">
+            {roadmap.map((m, i) => {
+              const Icon = iconOf(m.icon);
+              return (
+                <li key={m.key}>
+                  <span className="ob-road-num" aria-hidden="true">
+                    <Icon size={18} />
+                  </span>
+                  <div className="ob-road-body">
+                    <span className="ob-road-title">{m.title}</span>
+                    <label className="sr-only" htmlFor={`ob-when-${m.key}`}>
+                      When, for {m.title}
+                    </label>
+                    <input
+                      id={`ob-when-${m.key}`}
+                      type="text"
+                      maxLength={40}
+                      autoComplete="off"
+                      placeholder="When? (optional)"
+                      value={m.when}
+                      onChange={(e) =>
+                        setRoadmap((r) => r.map((x) => (x.key === m.key ? { ...x, when: e.target.value } : x)))
+                      }
+                    />
+                  </div>
+                  <div className="ob-road-tools">
+                    <button
+                      type="button"
+                      className="icon-btn"
+                      aria-label={`Move ${m.title} earlier`}
+                      disabled={i === 0}
+                      onClick={() => moveMilestone(i, -1)}
+                    >
+                      <ArrowUp aria-hidden="true" size={18} />
+                    </button>
+                    <button
+                      type="button"
+                      className="icon-btn"
+                      aria-label={`Move ${m.title} later`}
+                      disabled={i === roadmap.length - 1}
+                      onClick={() => moveMilestone(i, 1)}
+                    >
+                      <ArrowDown aria-hidden="true" size={18} />
+                    </button>
+                    <button
+                      type="button"
+                      className="icon-btn"
+                      aria-label={`Remove ${m.title}`}
+                      onClick={() => removeMilestone(m.key)}
+                    >
+                      <X aria-hidden="true" size={18} />
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        )}
+
+        <div className="ob-actions">
+          <button type="submit" className="btn-primary ob-cta">
+            Continue
+          </button>
+          {roadmap.length === 0 && (
+            <button type="button" className="ob-skip" onClick={() => goTo("checkin")}>
+              Skip for now
+            </button>
+          )}
+        </div>
+      </form>
+    );
+  } else if (step === "checkin") {
+    screen = (
+      <form className="ob-step" onSubmit={submitCreate} noValidate>
+        <div className="ob-top">
+          {backButton("roadmap")}
+          <span className="ob-progress">{stepOf("checkin")}</span>
+        </div>
+        <div className="ob-intro">
+          <h1 ref={headingRef} tabIndex={-1}>
+            Make time to check in
+          </h1>
+          <p>
+            A few minutes together: how it went, what was hard, and one thing for next time. It goes on
+            your calendar.
+          </p>
+        </div>
+
+        <fieldset className="ob-fieldset">
+          <legend>How often?</legend>
+          <div className="ob-options">
+            {frequencies.map((f) => (
+              <label key={f.key} className="ob-option">
+                <input
+                  type="radio"
+                  name="every"
+                  value={f.key}
+                  checked={every === f.key}
+                  onChange={() => setEvery(f.key)}
+                />
+                <span className="ob-option-box">
+                  <span className="ob-radio" aria-hidden="true" />
+                  <span className="ob-option-text">
+                    <strong>
+                      {f.label}
+                      {f.recommended && <span className="ob-recommended">Recommended</span>}
+                    </strong>
+                    <span>{f.key === "monthly" ? `The first ${checkInDay} of each month` : f.hint}</span>
+                  </span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <div className="field">
+          <label htmlFor="ob-day">Which day?</label>
+          <select id="ob-day" value={checkInDay} onChange={(e) => setCheckInDay(e.target.value)}>
+            {weekdays.map((d) => (
+              <option key={d}>{d}</option>
+            ))}
+          </select>
+          <p className="field-hint" aria-live="polite">
+            {firstCheckIn ? `Your first one: ${longDay.format(firstCheckIn.day)}, all day.` : ""}
+          </p>
+        </div>
+
+        <div className="ob-actions">
           {formAlert}
-          {submitButton("Create space", "Creating your space…")}
+          {submitButton("Create our space", "Creating your space…")}
         </div>
       </form>
     );
@@ -331,7 +657,7 @@ export default function Onboarding({
     screen = (
       <div className="ob-step">
         <div className="ob-top ob-top-end">
-          <span className="ob-progress">Step 2 of 2</span>
+          <span className="ob-progress">{stepOf("invite")}</span>
         </div>
         <div className="ob-intro">
           <span className="stat-icon tint-sage ob-badge" aria-hidden="true">
@@ -414,7 +740,7 @@ export default function Onboarding({
   } else if (step === "join") {
     screen = (
       <form className="ob-step" onSubmit={submitJoin} noValidate>
-        <div className="ob-top">{backButton}</div>
+        <div className="ob-top">{backButton()}</div>
         <div className="ob-intro">
           <h1 ref={headingRef} tabIndex={-1}>
             Join your partner's space
@@ -483,12 +809,20 @@ export default function Onboarding({
           <p>
             {path === "join"
               ? "You now share goals, tasks and the countdown with your partner."
-              : "Start with your first goal. Your partner can join any time with the code."}
+              : "Your roadmap and check-ins are waiting in Our Space. Your partner can join any time with the code."}
           </p>
         </div>
         <div className="ob-actions">
-          <button type="button" className="btn-primary ob-cta" onClick={onDone}>
-            Go to Home
+          <button
+            type="button"
+            className="btn-primary ob-cta"
+            onClick={() => {
+              // Someone who started the space lands on what they just set up.
+              if (path === "create") globalThis.location.hash = "#space";
+              onDone();
+            }}
+          >
+            {path === "create" ? "Go to Our Space" : "Go to Home"}
           </button>
         </div>
       </div>

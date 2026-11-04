@@ -179,7 +179,7 @@ export const MilestoneDialog = forwardRef<
   );
 });
 
-/* Weekly check-in: how the week felt, then three questions. Both of you
+/* Check-in: how the week felt, then three questions. Both of you
    answer on the same screen. A closed check-in keeps its answers until it's
    finished. */
 
@@ -193,8 +193,8 @@ type Draft = Partial<Record<Partner, Partial<CheckInAnswer>>>;
 
 export const CheckInDialog = forwardRef<
   HTMLDialogElement,
-  { onSave: (answers: CheckInAnswers) => void }
->(function CheckInDialog({ onSave }, ref) {
+  { title: string; onSave: (answers: CheckInAnswers) => void }
+>(function CheckInDialog({ title, onSave }, ref) {
   const { name, partner } = usePeople();
   const people: Partner[] = partner ? ["owner", "partner"] : ["owner"];
   const [step, setStep] = useState(0);
@@ -234,7 +234,7 @@ export const CheckInDialog = forwardRef<
     <dialog ref={ref} className="dialog sp-dialog sp-checkin" aria-labelledby="ci-dialog-title">
       <form onSubmit={submit} noValidate>
         <div className="dialog-head">
-          <h2 id="ci-dialog-title">Weekly check-in</h2>
+          <h2 id="ci-dialog-title">{title}</h2>
           <CloseButton dialog={ref} />
         </div>
         <div className="sp-progress">

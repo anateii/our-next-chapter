@@ -16,7 +16,7 @@ export interface Task {
   createdAt: string; // ISO
   doneAt?: string; // ISO
 }
-// "checkin" is only used for the weekly check-in, never picked by hand.
+// "checkin" is only used for the check-in, never picked by hand.
 export type EventKind =
   | "appointment"
   | "work"
@@ -35,7 +35,7 @@ export interface CalendarEvent {
   kind: EventKind;
   owner: Person; // who's going
   notes?: string;
-  recurring?: boolean; // the weekly check-in, shown on the calendar but not stored
+  recurring?: boolean; // the check-in, shown on the calendar but not stored
 }
 export interface Adventure {
   title: string;

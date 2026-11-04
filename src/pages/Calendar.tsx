@@ -1,3 +1,4 @@
+import type { CheckInSchedule } from "../helpers/checkins";
 import { useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import {
@@ -71,7 +72,7 @@ const layerLabels: { key: Layer; label: string }[] = [
 
 export default function Calendar({
   events,
-  checkInDay,
+  checkIn,
   tasks,
   goals,
   me,
@@ -83,7 +84,7 @@ export default function Calendar({
   onChangeTask,
 }: Readonly<{
   events: readonly CalendarEvent[];
-  checkInDay: string;
+  checkIn: CheckInSchedule;
   tasks: readonly Task[];
   goals: readonly Goal[];
   me: Person;
@@ -132,7 +133,7 @@ export default function Calendar({
         if (keyOf(e.date) === day && forWho(e.owner))
           items.push({ type: "event", sort: e.allDay ? "00:00" : e.date.toTimeString(), event: e });
     if (layers.checkins && (who === "all" || who === "Both"))
-      for (const c of checkIns(checkInDay, d, d))
+      for (const c of checkIns(checkIn, d, d))
         items.push({ type: "event", sort: "00:00", event: c });
     if (layers.tasks)
       for (const t of tasks)
@@ -329,7 +330,7 @@ export default function Calendar({
 }
 
 // One small line in a day cell. Events and tasks can be dragged to another day;
-// the weekly check-in repeats, so it stays put.
+// the check-in repeats, so it stays put.
 function Chip({
   item,
   dragging,

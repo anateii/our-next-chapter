@@ -18,7 +18,6 @@ export const iconOf = (key: string) => milestoneIcons.find((i) => i.key === key)
 
 export const moods = ["Great", "Good", "Okay", "Tough"] as const;
 export type Mood = (typeof moods)[number];
-const weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 export interface CheckInAnswer {
   mood: Mood;
@@ -93,18 +92,6 @@ export const dayFromToday = (n: number) => {
   d.setHours(0, 0, 0, 0);
   d.setDate(d.getDate() + n);
   return d;
-};
-
-// The next check-in day (today counts), and whether this week's is already
-// done: a check-in saved in the 7 days up to and including that day.
-export const nextCheckIn = (checkInDay: string, checkins: readonly CheckIn[]) => {
-  const target = (weekdays.indexOf(checkInDay) + 1) % 7; // JS getDay(): Sunday = 0
-  const today = dayFromToday(0);
-  const inDays = (target - today.getDay() + 7) % 7;
-  const day = dayFromToday(inDays);
-  const weekStart = dayFromToday(inDays - 6);
-  const done = checkins.some((c) => new Date(c.at) >= weekStart);
-  return done ? { day: dayFromToday(inDays + 7), inDays: inDays + 7, done } : { day, inDays, done };
 };
 
 // Whole days from today to a "YYYY-MM-DD" date.

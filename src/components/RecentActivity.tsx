@@ -110,7 +110,7 @@ function Sentence({ a, goal }: Readonly<{ a: ApiActivity; goal?: Goal }>) {
     case "win_added":
       return <>celebrated a win: {t}</>;
     case "checkin_done":
-      return <>saved your weekly check-in</>;
+      return <>saved your check-in</>;
   }
 }
 

@@ -5,12 +5,12 @@ import type { Person } from "../types";
 import type { ApiMember } from "../helpers/goals";
 import type { Partner } from "../helpers/finances";
 import { usePeople } from "../helpers/people";
+import { checkInTitle, nextCheckIn, scheduleLabel, type CheckInSchedule } from "../helpers/checkins";
 import {
   daysUntil,
   fromApiOurSpace,
   iconOf,
   moods,
-  nextCheckIn,
   statuses,
   type ApiOurSpace,
   type CheckIn,
@@ -45,7 +45,7 @@ export default function Space({
   members,
   focus,
   onFocus,
-  checkInDay,
+  checkIn,
   countdown,
 }: Readonly<{
   data: OurSpace;
@@ -56,7 +56,7 @@ export default function Space({
   members: readonly ApiMember[];
   focus: string;
   onFocus: (focus: string) => void;
-  checkInDay: string;
+  checkIn: CheckInSchedule;
   countdown?: { title: string; targetDate: string }; // the featured goal, if it has a date
 }>) {
   const { name, partner } = usePeople();
@@ -175,7 +175,7 @@ export default function Space({
         return null;
       });
     notify({
-      message: `Check-in saved. See you next ${checkInDay}.`,
+      message: "Check-in saved. See you next time.",
       ok: true,
       undo: () => {
         setData((s) => ({ ...s, checkins: s.checkins.filter((c) => c.id !== temp.id) }));
@@ -185,7 +185,10 @@ export default function Space({
       },
     });
   };
-  const next = nextCheckIn(checkInDay, checkins);
+  const next = nextCheckIn(
+    checkIn,
+    checkins.map((c) => c.at),
+  ) ?? { day: new Date(), inDays: 0, done: false };
   const whenLabel = (() => {
     if (next.inDays === 0) return "Today";
     if (next.inDays === 1) return "Tomorrow";
@@ -342,15 +345,15 @@ export default function Space({
       <div className="sp-two">
         <section className="card sp-panel" aria-labelledby="ci-title">
           <div className="sp-panel-head">
-            <h2 id="ci-title">Weekly check-in</h2>
-            <span className="sp-sub">Every {checkInDay}</span>
+            <h2 id="ci-title">{checkInTitle(checkIn)}</h2>
+            <span className="sp-sub">{scheduleLabel(checkIn)}</span>
           </div>
           <div className={`sp-next${next.done ? " done" : ""}`}>
             <span className="sp-next-icon" aria-hidden="true">
               {next.done ? <Check size={22} strokeWidth={2.4} /> : <MessagesSquare size={22} />}
             </span>
             <div>
-              <b>{next.done ? "Done for this week" : whenLabel}</b>
+              <b>{next.done ? (checkIn.every === "weekly" ? "Done for this week" : "Done for now") : whenLabel}</b>
               <span>
                 {next.done
                   ? `Next one: ${longDay.format(next.day)}`
@@ -449,7 +452,7 @@ export default function Space({
           removeLater("milestone", id, `Deleted “${m?.title ?? "milestone"}”`);
         }}
       />
-      <CheckInDialog ref={checkInRef} onSave={saveCheckIn} />
+      <CheckInDialog ref={checkInRef} title={checkInTitle(checkIn)} onSave={saveCheckIn} />
     </>
   );
 }

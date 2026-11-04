@@ -203,6 +203,260 @@
   font-weight: 500;
 }
 
+/* Focus, roadmap and check-in steps */
+/* App.css gives .field flex: 1, which would stretch it inside the step column */
+.ob-step .field {
+  flex: none;
+}
+.field .ob-textarea {
+  min-height: 96px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--field-line);
+  background: var(--surface-sunken);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.4;
+  resize: vertical;
+}
+.field .ob-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--surface);
+}
+.ob-fieldset {
+  margin: 0;
+  padding: 0;
+  border: none;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ob-fieldset legend {
+  margin-bottom: 10px;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+/* Suggestion chips (toggle buttons) */
+.ob-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ob-chip {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-2);
+  transition:
+    background var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+.ob-chip svg {
+  color: var(--muted);
+}
+@media (hover: hover) {
+  .ob-chip:hover:not(:disabled) {
+    border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+  }
+}
+.ob-chip[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+.ob-chip[aria-pressed="true"] svg {
+  color: var(--accent);
+}
+.ob-chip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Add your own */
+.ob-add-row {
+  display: flex;
+  gap: 8px;
+}
+.ob-add-row input {
+  flex: 1;
+  min-width: 0;
+}
+.ob-add-row button {
+  flex-shrink: 0;
+}
+.ob-add-row button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* The roadmap so far */
+.ob-roadmap {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ob-roadmap li {
+  padding: 10px 6px 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--surface-sunken);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ob-road-num {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.ob-road-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ob-road-title {
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.ob-road-body input {
+  width: 100%;
+  min-height: 32px;
+  padding: 0;
+  border: none;
+  border-bottom: 1px dashed var(--dash-line);
+  background: transparent;
+  font-size: 14px;
+  color: var(--text-2);
+}
+.ob-road-body input::placeholder {
+  color: var(--faint);
+}
+.ob-road-body input:focus {
+  outline: none;
+  border-bottom: 1px solid var(--accent);
+}
+.ob-road-tools {
+  display: flex;
+  flex-shrink: 0;
+}
+.ob-road-tools .icon-btn {
+  width: 36px;
+  height: 44px;
+  color: var(--muted);
+}
+.ob-road-tools .icon-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* How often: radio cards */
+.ob-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ob-option {
+  position: relative;
+}
+.ob-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.ob-option-box {
+  min-height: 64px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  transition:
+    border-color var(--dur) var(--ease),
+    background var(--dur) var(--ease);
+}
+.ob-option input:checked + .ob-option-box {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.ob-option input:focus-visible + .ob-option-box {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.ob-radio {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid var(--faint);
+  display: grid;
+  place-items: center;
+}
+.ob-option input:checked + .ob-option-box .ob-radio {
+  border-color: var(--accent);
+}
+.ob-option input:checked + .ob-option-box .ob-radio::after {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.ob-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ob-option-text strong {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.ob-option-text > span {
+  font-size: 13px;
+  color: var(--muted);
+}
+.ob-recommended {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--sage-soft);
+  color: var(--sage);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 /* Bottom actions */
 .ob-actions {
   margin-top: auto;

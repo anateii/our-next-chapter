@@ -1,0 +1,1 @@
+ALTER TABLE "spaces" ADD COLUMN "check_in_every" text DEFAULT 'weekly' NOT NULL;

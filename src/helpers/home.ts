@@ -3,7 +3,14 @@ import type { ApiMember } from "./goals";
 
 // What GET /api/home returns (see api/home.ts).
 export interface ApiHome {
-  space: { id: string; name: string; focus: string | null; checkInDay: string };
+  space: {
+    id: string;
+    name: string;
+    focus: string | null;
+    checkInDay: string;
+    checkInEvery: string; // "weekly" | "biweekly" | "monthly"
+    createdAt: string;
+  };
   members: ApiMember[];
   stats: { activeGoals: number; tasksLeft: number; upcomingEvents: number };
   today: {

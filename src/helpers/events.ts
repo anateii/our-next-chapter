@@ -1,3 +1,4 @@
+import { checkInDates, checkInTitle, type CheckInSchedule } from "./checkins";
 import {
   Briefcase,
   CalendarDays,
@@ -102,27 +103,17 @@ export const moveToDay = (e: CalendarEvent, day: string) => {
   return next.toISOString();
 };
 
-// The weekly check-in on `checkInDay` ("Sunday"), for each such day in [from, to].
-const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-export const checkIns = (checkInDay: string, from: Date, to: Date): CalendarEvent[] => {
-  const target = weekdays.indexOf(checkInDay);
-  if (target < 0) return [];
-  const out: CalendarEvent[] = [];
-  const d = new Date(from.getFullYear(), from.getMonth(), from.getDate());
-  d.setDate(d.getDate() + ((target - d.getDay() + 7) % 7));
-  for (; d <= to; d.setDate(d.getDate() + 7)) {
-    const startsAt = new Date(d).toISOString();
-    out.push(
-      withDisplay({
-        id: `checkin-${startsAt}`,
-        title: "Weekly check-in",
-        kind: "checkin",
-        startsAt,
-        allDay: true,
-        owner: "Both",
-        recurring: true,
-      }),
-    );
-  }
-  return out;
-};
+// The check-ins for each scheduled day in [from, to] (see helpers/checkins.ts).
+export const checkIns = (schedule: CheckInSchedule, from: Date, to: Date): CalendarEvent[] =>
+  checkInDates(schedule, from, to).map((d) => {
+    const startsAt = d.toISOString();
+    return withDisplay({
+      id: `checkin-${startsAt}`,
+      title: checkInTitle(schedule),
+      kind: "checkin",
+      startsAt,
+      allDay: true,
+      owner: "Both",
+      recurring: true,
+    });
+  });

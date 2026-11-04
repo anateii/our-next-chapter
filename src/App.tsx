@@ -38,6 +38,7 @@ import {
   type EventEdits,
 } from "./helpers/events";
 import { activitySince, type ApiActivity } from "./helpers/activity";
+import { defaultSchedule, toEvery, type CheckInSchedule } from "./helpers/checkins";
 import { PeopleContext, peopleFrom } from "./helpers/people";
 import {
   emptyFinances,
@@ -130,8 +131,8 @@ export default function App() {
   // Per goal, how many linked tasks were finished before the loaded window.
   const [olderDone, setOlderDone] = useState<Record<string, number>>({});
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  // The space's weekly check-in day ("Sunday"), shown on the calendar.
-  const [checkInDay, setCheckInDay] = useState("Sunday");
+  // When you check in (day and how often), shown on the calendar and in Our Space.
+  const [checkIn, setCheckIn] = useState<CheckInSchedule>(defaultSchedule);
   // Savings funds, shared expenses, settle-ups and the budget.
   const [finances, setFinances] = useState<FinanceData>(emptyFinances);
   // Our Space: roadmap, wins and check-ins, plus the focus line.
@@ -256,7 +257,11 @@ export default function App() {
         id: localIds.current.get(e.id) ?? e.id,
       })),
     );
-    setCheckInDay(home.space.checkInDay);
+    setCheckIn({
+      day: home.space.checkInDay,
+      every: toEvery(home.space.checkInEvery),
+      since: new Date(home.space.createdAt),
+    });
     setFinances(fromApiFinances(money, home.members));
     setFocus(home.space.focus ?? "");
     setOurSpace(fromApiOurSpace(space, home.members));
@@ -601,7 +606,7 @@ export default function App() {
   weekEnd.setDate(weekStart.getDate() + 7);
   const weekEvents = [
     ...events.filter((e) => e.date >= weekStart && e.date < weekEnd),
-    ...checkIns(checkInDay, weekStart, new Date(weekEnd.getTime() - 1)),
+    ...checkIns(checkIn, weekStart, new Date(weekEnd.getTime() - 1)),
   ].sort((a, b) => a.date.getTime() - b.date.getTime());
   const upcomingEvents = events.filter(
     (e) => e.date >= new Date() && e.date < weekEnd,
@@ -793,7 +798,7 @@ export default function App() {
                 members={members}
                 focus={focus}
                 onFocus={setFocus}
-                checkInDay={checkInDay}
+                checkIn={checkIn}
                 countdown={
                   featured?.targetDate
                     ? { title: featured.title, targetDate: featured.targetDate }
@@ -804,7 +809,7 @@ export default function App() {
             {page === "calendar" && (
               <Calendar
                 events={events}
-                checkInDay={checkInDay}
+                checkIn={checkIn}
                 tasks={tasks}
                 goals={goals}
                 me={me}
