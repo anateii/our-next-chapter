@@ -1,8 +1,6 @@
 import { useState } from "react";
-import { House, Utensils, MessageCircle, CalendarDays } from "lucide-react";
 import type { CalendarEvent } from "../types";
-
-const icons = { home: House, food: Utensils, checkin: MessageCircle, other: CalendarDays };
+import { kindIcons as icons } from "../helpers/events";
 
 const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
 
@@ -30,7 +28,7 @@ export default function WeekAhead({ events }: Readonly<{ events: readonly Calend
   );
 
   return (
-    <section id="calendar" className="card panel">
+    <section id="week" className="card panel">
       <div className="panel-head">
         <h2>Upcoming this week</h2>
         <a className="text-link" href="#calendar">
@@ -72,7 +70,7 @@ export default function WeekAhead({ events }: Readonly<{ events: readonly Calend
                 <div>
                   <span className="event-title">{e.title}</span>
                   <span className="event-when">
-                    {fmtDay(e.date)} · {e.time}
+                    {fmtDay(e.date)} · {e.time || "All day"}
                   </span>
                 </div>
               </li>

@@ -1048,13 +1048,26 @@
   display: grid;
   place-items: center;
 }
-.kind-home {
+/* Event kinds: icon tiles and calendar chips */
+.kind-appointment {
+  background: var(--sky-soft);
+  color: var(--sky);
+}
+.kind-work {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+.kind-travel {
+  background: var(--teal-soft);
+  color: var(--teal);
+}
+.kind-date {
   background: var(--peach-soft);
   color: var(--peach);
 }
-.kind-food {
-  background: var(--amber-soft);
-  color: var(--amber);
+.kind-family {
+  background: var(--sage-soft);
+  color: var(--sage);
 }
 .kind-other {
   background: var(--surface-sunken);

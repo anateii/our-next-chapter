@@ -31,12 +31,26 @@ export interface Task {
   createdAt: string; // ISO
   doneAt?: string; // ISO
 }
+// "checkin" is only used for the weekly check-in, never picked by hand.
+export type EventKind =
+  | "appointment"
+  | "work"
+  | "travel"
+  | "date"
+  | "family"
+  | "other"
+  | "checkin";
 export interface CalendarEvent {
   id: string;
   title: string;
-  date: Date;
-  time: string;
-  kind: "home" | "food" | "checkin" | "other";
+  startsAt: string; // ISO; local midnight when allDay
+  date: Date; // startsAt as a Date
+  time: string; // "7:30 PM", or "" when allDay
+  allDay: boolean;
+  kind: EventKind;
+  owner: Person; // who's going
+  notes?: string;
+  recurring?: boolean; // the weekly check-in, shown on the calendar but not stored
 }
 export interface Adventure {
   title: string;

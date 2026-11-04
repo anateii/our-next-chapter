@@ -36,6 +36,20 @@
       "when": 1793743325956,
       "tag": "0004_left_thena",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793782954614,
+      "tag": "0005_outgoing_post",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793786077486,
+      "tag": "0006_milky_warhawk",
+      "breakpoints": true
     }
   ]
 }

@@ -7,6 +7,8 @@ import Sidebar from "./components/Sidebar";
 import Home from "./pages/Home";
 import Goals from "./pages/Goals";
 import Tasks from "./pages/Tasks";
+import Calendar from "./pages/Calendar";
+import type { NewEvent } from "./components/EventDialog";
 import Onboarding from "./pages/Onboarding";
 import type { GoalEdits } from "./components/NewGoalDialog";
 import { Check, CircleAlert, LoaderCircle, Undo2 } from "lucide-react";
@@ -24,7 +26,15 @@ import {
   type ApiGoal,
   type ApiMember,
 } from "./helpers/goals";
-import { fromApiEvent, homeQuery, type ApiHome } from "./helpers/home";
+import { homeQuery, type ApiHome } from "./helpers/home";
+import {
+  applyEventEdits,
+  checkIns,
+  fromApiEvent,
+  toApiEventEdits,
+  type ApiEvent,
+  type EventEdits,
+} from "./helpers/events";
 import { activitySince, type ApiActivity } from "./helpers/activity";
 import { PeopleContext, peopleFrom } from "./helpers/people";
 import {
@@ -39,24 +49,27 @@ import {
   type TaskEdits,
 } from "./helpers/tasks";
 
-// Tiny hash router: #goals opens Our Goals, #tasks opens Tasks; any other
-// hash stays on Home (Home uses #calendar as an in-page anchor).
-const pages: Record<string, "goals" | "tasks"> = {
+// Tiny hash router: #goals, #tasks and #calendar open their pages; any other
+// hash stays on Home.
+type Page = "home" | "goals" | "tasks" | "calendar";
+const pages: Record<string, Page> = {
   "#goals": "goals",
   "#tasks": "tasks",
+  "#calendar": "calendar",
 };
-const activeLabel = {
+const activeLabel: Record<Page, string> = {
   home: "Home",
   goals: "Our Goals",
   tasks: "Tasks",
-} as const;
+  calendar: "Calendar",
+};
 
 // How long an Undo toast stays up; deletes wait this long before reaching the API.
 const UNDO_MS = 5000;
 // How often to check for the other partner's changes while the app is showing.
 const REFRESH_MS = 30_000;
 function usePage() {
-  const read = (): "home" | "goals" | "tasks" =>
+  const read = (): Page =>
     pages[globalThis.location.hash] ?? "home";
   const [page, setPage] = useState(read);
   useEffect(() => {
@@ -99,7 +112,8 @@ export default function App() {
   // Per goal, how many linked tasks were finished before the loaded window.
   const [olderDone, setOlderDone] = useState<Record<string, number>>({});
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [upcomingEvents, setUpcomingEvents] = useState(0);
+  // The space's weekly check-in day ("Sunday"), shown on the calendar.
+  const [checkInDay, setCheckInDay] = useState("Sunday");
   const [members, setMembers] = useState<ApiMember[]>([]);
   const [spaceName, setSpaceName] = useState("");
   const [dataLoaded, setDataLoaded] = useState(false);
@@ -189,6 +203,7 @@ export default function App() {
       api<{ tasks: ApiTask[]; olderDone: Record<string, number> }>(
         `/tasks?doneSince=${encodeURIComponent(doneSince.toISOString())}`,
       ),
+      api<{ events: ApiEvent[] }>("/events"),
       // The feed is extra: if it fails, show the rest without it.
       loadActivity().catch((err): ActivityRes => {
         console.warn("Loading activity failed:", err);
@@ -196,7 +211,7 @@ export default function App() {
       }),
     ]);
   };
-  const showAll = ([home, res, all, feed]: Awaited<
+  const showAll = ([home, res, all, cal, feed]: Awaited<
     ReturnType<typeof loadAll>
   >) => {
     showActivity(feed);
@@ -210,8 +225,13 @@ export default function App() {
       })),
     );
     setOlderDone(all.olderDone);
-    setEvents(home.week.events.map(fromApiEvent));
-    setUpcomingEvents(home.stats.upcomingEvents);
+    setEvents(
+      cal.events.map((e) => ({
+        ...fromApiEvent(e, home.members),
+        id: localIds.current.get(e.id) ?? e.id,
+      })),
+    );
+    setCheckInDay(home.space.checkInDay);
   };
 
   // Load the space's data once there is a space.
@@ -445,6 +465,115 @@ export default function App() {
     });
   };
 
+  // Events work like tasks: shown at once, saved in the background, put back
+  // if the save fails. New ones keep their temporary id on screen too.
+  const createEvent = (e: NewEvent) => {
+    const id = `new-${crypto.randomUUID()}`;
+    const ownerUserId = toUserId(e.owner, members);
+    const created = fromApiEvent({ id, ...e, ownerUserId, notes: e.notes ?? null }, members);
+    setEvents((es) => [...es, created]);
+    setToast({ message: `Added “${e.title}” to the calendar`, ok: true });
+    savedIds.current.set(
+      id,
+      api<{ event: ApiEvent }>("/events", {
+        method: "POST",
+        body: JSON.stringify({ ...e, owner: undefined, ownerUserId }),
+      })
+        .then(({ event }) => {
+          localIds.current.set(event.id, id);
+          return event.id;
+        })
+        .catch((err) => {
+          console.error("Adding event failed:", err);
+          setEvents((es) => es.filter((x) => x.id !== id));
+          setToast({ message: `Couldn't add “${e.title}”. Try again.`, ok: false });
+          return undefined;
+        }),
+    );
+  };
+
+  const updateEvent = (id: string, edits: EventEdits) => {
+    const before = events.find((e) => e.id === id);
+    if (!before) return Promise.resolve(false);
+    const replace = (ev: CalendarEvent) =>
+      setEvents((es) => es.map((e) => (e.id === id ? ev : e)));
+    replace(applyEventEdits(before, edits));
+    return holdRefresh(serverId(id))
+      .then(async (savedId) => {
+        if (!savedId) return false;
+        const { event } = await api<{ event: ApiEvent }>("/events", {
+          method: "PATCH",
+          body: JSON.stringify({ id: savedId, ...toApiEventEdits(edits, members) }),
+        });
+        replace({ ...fromApiEvent(event, members), id });
+        return true;
+      })
+      .catch((err) => {
+        console.error("Saving event failed:", err);
+        replace(before);
+        setToast({ message: "Couldn't save that change. Try again.", ok: false });
+        return false;
+      });
+  };
+
+  // An update with an Undo toast; Undo puts back the fields it changed.
+  const changeEvent = (id: string, edits: EventEdits, message: string) => {
+    const before = events.find((e) => e.id === id);
+    if (!before) return;
+    const previous = Object.fromEntries(
+      Object.keys(edits).map((k) => [k, before[k as keyof EventEdits] ?? null]),
+    ) as EventEdits;
+    void updateEvent(id, edits);
+    setToast({ message, ok: true, undo: () => void updateEvent(id, previous) });
+  };
+
+  // Hide it now and delete it once the Undo window has passed.
+  const deleteEvent = (id: string) => {
+    const ev = events.find((e) => e.id === id);
+    if (!ev) return;
+    const restore = () => setEvents((es) => [...es, ev]);
+    setEvents((es) => es.filter((e) => e.id !== id));
+    let release = () => {};
+    void holdRefresh(new Promise<void>((resolve) => (release = resolve)));
+    const timer = setTimeout(() => {
+      serverId(id)
+        .then(
+          (savedId) =>
+            savedId &&
+            api(`/events?id=${encodeURIComponent(savedId)}`, { method: "DELETE" }),
+        )
+        .catch((err) => {
+          console.error("Deleting event failed:", err);
+          restore();
+          setToast({ message: "Couldn't delete the event. Try again.", ok: false });
+        })
+        .finally(release);
+    }, UNDO_MS);
+    setToast({
+      message: `Deleted “${ev.title}”`,
+      ok: true,
+      undo: () => {
+        clearTimeout(timer);
+        restore();
+        release();
+      },
+    });
+  };
+
+  // Home's "Upcoming this week": this week's events (Monday to Sunday) and the check-in.
+  const weekStart = new Date();
+  weekStart.setHours(0, 0, 0, 0);
+  weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 7);
+  const weekEvents = [
+    ...events.filter((e) => e.date >= weekStart && e.date < weekEnd),
+    ...checkIns(checkInDay, weekStart, new Date(weekEnd.getTime() - 1)),
+  ].sort((a, b) => a.date.getTime() - b.date.getTime());
+  const upcomingEvents = events.filter(
+    (e) => e.date >= new Date() && e.date < weekEnd,
+  ).length;
+
   // Home shows what's due today; "Tasks to do" counts every open task.
   const todayTasks = tasks
     .filter((t) => t.dueAt && daysFromToday(t.dueAt) === 0)
@@ -610,10 +739,25 @@ export default function App() {
                 onDelete={deleteTask}
               />
             )}
+            {page === "calendar" && (
+              <Calendar
+                events={events}
+                checkInDay={checkInDay}
+                tasks={tasks}
+                goals={goals}
+                me={me}
+                onCreate={createEvent}
+                onUpdate={updateEvent}
+                onChange={changeEvent}
+                onDelete={deleteEvent}
+                onToggleTask={toggleTask}
+                onChangeTask={changeTask}
+              />
+            )}
             {page === "home" && (
               <Home
                 tasks={todayTasks}
-                events={events}
+                events={weekEvents}
                 tasksLeft={tasksLeft}
                 upcomingEvents={upcomingEvents}
                 onToggleTask={toggleTask}

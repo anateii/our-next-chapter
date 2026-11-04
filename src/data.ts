@@ -3,7 +3,6 @@ import type {
   Plan,
   MoneyGoal,
   Decision,
-  CalendarEvent,
   Goal,
 } from "./types";
 import thailand from "./assets/thailand.png";
@@ -103,24 +102,5 @@ export const initialLifeGoals: Goal[] = [
     stepsTotal: 5,
     nextStep: "Discuss Oliver's joining window",
     owner: "partner",
-  },
-];
-
-const daysFromToday = (n: number) => {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() + n);
-  return d;
-};
-
-export const sampleEvents: CalendarEvent[] = [
-  { id: "e1", title: "Apartment viewing", date: daysFromToday(1), time: "10:30 AM", kind: "home" },
-  { id: "e2", title: "Dinner with friends", date: daysFromToday(1), time: "7:00 PM", kind: "food" },
-  {
-    id: "e3",
-    title: "Weekly check-in",
-    date: daysFromToday((7 - new Date().getDay()) % 7),
-    time: "6:00 PM",
-    kind: "checkin",
   },
 ];

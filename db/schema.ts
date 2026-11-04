@@ -29,11 +29,15 @@ export const goalCategoryEnum = pgEnum("goal_category", [
   "finance",
   "life",
 ]);
+// What kind of event it is. "checkin" is only for the weekly check-in.
 export const eventKindEnum = pgEnum("event_kind", [
-  "home",
-  "food",
-  "checkin",
+  "appointment",
+  "work",
+  "travel",
+  "date",
+  "family",
   "other",
+  "checkin",
 ]);
 
 const id = () => uuid("id").primaryKey().defaultRandom();
@@ -119,7 +123,11 @@ export const events = pgTable(
     spaceId: spaceId(),
     title: text("title").notNull(),
     kind: eventKindEnum("kind").notNull().default("other"),
-    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(), // local midnight when all day
+    allDay: boolean("all_day").notNull().default(false),
+    ownerUserId: text("owner_user_id"), // who's going; null = both of you
+    notes: text("notes"),
+    createdBy: text("created_by"), // Clerk user id; null for events made before this column
     createdAt: createdAt(),
   },
   (t) => [index("events_space_starts_idx").on(t.spaceId, t.startsAt)],

@@ -306,7 +306,7 @@
   align-items: stretch;
 }
 .goals-list .goal-cover {
-  flex: 0 0 160px;
+  flex: 0 0 250px;
   aspect-ratio: auto;
   border-radius: 20px 0 0 20px;
 }

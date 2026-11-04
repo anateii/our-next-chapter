@@ -1,4 +1,4 @@
-import type { CalendarEvent } from "../types";
+import type { EventKind } from "../types";
 import type { ApiMember } from "./goals";
 
 // What GET /api/home returns (see api/home.ts).
@@ -19,14 +19,11 @@ export interface ApiHome {
     events: {
       id: string;
       title: string;
-      kind: CalendarEvent["kind"];
+      kind: EventKind;
       startsAt: string; // ISO
     }[];
   };
 }
-
-const fmtTime = (iso: string) =>
-  new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 
 // "Today" and "this week" depend on the viewer's timezone, so send local midnights.
 export const homeQuery = (now = new Date()) => {
@@ -38,11 +35,3 @@ export const homeQuery = (now = new Date()) => {
     weekStart: weekStart.toISOString(),
   }).toString();
 };
-
-export const fromApiEvent = (e: ApiHome["week"]["events"][number]): CalendarEvent => ({
-  id: e.id,
-  title: e.title,
-  date: new Date(e.startsAt),
-  time: fmtTime(e.startsAt),
-  kind: e.kind,
-});
