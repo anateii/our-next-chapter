@@ -9,7 +9,10 @@ export interface ApiActivity {
     | "goal_added"
     | "goal_completed"
     | "goal_photo"
-    | "event_added";
+    | "event_added"
+    | "expense_added"
+    | "savings_added"
+    | "settled";
   title: string; // as it was named at the time
   taskId: string | null;
   goalId: string | null;

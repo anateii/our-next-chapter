@@ -23,7 +23,7 @@ export interface Task {
   owner: Person;
   status: TaskStatus;
   done: boolean;
-  time?: string; // "6:00 PM" or "Any time", for Home's Today list
+  time?: string; // "6:00 PM", only when the task has a time
   dueAt?: string; // ISO; local midnight = a day without a time
   goalId?: string;
   notes?: string;

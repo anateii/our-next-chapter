@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { CalendarEvent } from "../types";
 import { kindIcons as icons } from "../helpers/events";
+import ScrollFade from "./ScrollFade";
 
 const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
 
@@ -59,7 +60,8 @@ export default function WeekAhead({ events }: Readonly<{ events: readonly Calend
         })}
       </div>
       {visible.length > 0 ? (
-        <ul className="events">
+        // The card has a fixed height; plans that don't fit scroll inside it.
+        <ScrollFade as="ul" className="events" fill label="Upcoming this week">
           {visible.map((e) => {
             const Icon = icons[e.kind];
             return (
@@ -76,7 +78,7 @@ export default function WeekAhead({ events }: Readonly<{ events: readonly Calend
               </li>
             );
           })}
-        </ul>
+        </ScrollFade>
       ) : (
         <p className="empty">
           Nothing planned {selected ? `for ${fmtDay(selected)}` : "this week"}. A free evening

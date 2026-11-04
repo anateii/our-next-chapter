@@ -2,10 +2,13 @@ import { useState } from "react";
 import {
   CalendarDays,
   Check,
+  Handshake,
   Heart,
   Image,
+  PiggyBank,
   Plus,
   Trophy,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import type { Goal, Person } from "../types";
@@ -24,6 +27,9 @@ const kinds: Record<ApiActivity["kind"], { icon: LucideIcon; tone: string }> = {
   goal_completed: { icon: Trophy, tone: "sage" },
   goal_photo: { icon: Image, tone: "peach" },
   event_added: { icon: CalendarDays, tone: "sky" },
+  expense_added: { icon: Wallet, tone: "peach" },
+  savings_added: { icon: PiggyBank, tone: "sage" },
+  settled: { icon: Handshake, tone: "sage" },
 };
 
 const time = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" });
@@ -91,6 +97,12 @@ function Sentence({ a, goal }: Readonly<{ a: ApiActivity; goal?: Goal }>) {
       return <>added a cover photo to {t}</>;
     case "event_added":
       return <>added {t} to the calendar</>;
+    case "expense_added":
+      return <>added the expense {t}</>;
+    case "savings_added":
+      return <>saved {t}</>;
+    case "settled":
+      return <>settled up ({a.title})</>;
   }
 }
 

@@ -50,6 +50,13 @@
       "when": 1793786077486,
       "tag": "0006_milky_warhawk",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793789230236,
+      "tag": "0007_same_wrecking_crew",
+      "breakpoints": true
     }
   ]
 }

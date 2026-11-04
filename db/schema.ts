@@ -54,6 +54,8 @@ export const spaces = pgTable("spaces", {
   focus: text("focus"),
   checkInDay: text("check_in_day").notNull().default("Sunday"),
   onboarded: boolean("onboarded").notNull().default(false),
+  // How shared costs split "by income": the owner's share in percent (60 = 60/40).
+  incomeSplitOwner: integer("income_split_owner").notNull().default(50),
   createdAt: createdAt(),
 });
 
@@ -177,7 +179,7 @@ export const activity = pgTable(
     spaceId: spaceId(),
     actorUserId: text("actor_user_id").notNull(), // Clerk user id
     // 'task_added' | 'step_added' | 'task_done' | 'goal_added' | 'goal_completed'
-    // | 'goal_photo' | 'event_added'
+    // | 'goal_photo' | 'event_added' | 'expense_added' | 'savings_added' | 'settled'
     kind: text("kind").notNull(),
     title: text("title").notNull(),
     taskId: uuid("task_id"), // no foreign key: the entry outlives a deleted task
@@ -201,3 +203,77 @@ export const wins = pgTable("wins", {
   text: text("text").notNull(),
   createdAt: createdAt(),
 });
+
+// Finances. Amounts are whole cents (euros).
+
+// A pot you're saving into together, optionally for one of your goals.
+export const funds = pgTable(
+  "funds",
+  {
+    id: id(),
+    spaceId: spaceId(),
+    name: text("name").notNull(),
+    goalId: uuid("goal_id").references(() => goals.id, { onDelete: "set null" }),
+    targetCents: integer("target_cents").notNull(),
+    monthlyCents: integer("monthly_cents").notNull().default(0), // what you plan to add each month
+    createdAt: createdAt(),
+  },
+  (t) => [index("funds_space_idx").on(t.spaceId)],
+);
+
+// Money one of you put into a fund (negative = taken out).
+export const contributions = pgTable(
+  "contributions",
+  {
+    id: id(),
+    spaceId: spaceId(),
+    fundId: uuid("fund_id")
+      .notNull()
+      .references(() => funds.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull(), // Clerk user id
+    cents: integer("cents").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("contributions_fund_idx").on(t.fundId)],
+);
+
+// A shared cost: who paid, and how much of it is the owner's (the rest is the partner's).
+export const expenses = pgTable(
+  "expenses",
+  {
+    id: id(),
+    spaceId: spaceId(),
+    title: text("title").notNull(),
+    cents: integer("cents").notNull(),
+    // 'home' (rent) | 'utilities' | 'subscriptions' | 'transport' | 'health' | 'food' | 'out' | 'travel' | 'other'
+    category: text("category").notNull().default("other"),
+    paidBy: text("paid_by").notNull(), // Clerk user id
+    split: text("split").notNull().default("equal"), // 'equal' | 'income' | 'owner' | 'partner'
+    ownerShare: integer("owner_share").notNull().default(50), // percent, fixed when saved
+    day: date("day", { mode: "string" }).notNull(),
+    createdBy: text("created_by"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("expenses_space_day_idx").on(t.spaceId, t.day)],
+);
+
+// One of you paying the other back.
+export const settlements = pgTable("settlements", {
+  id: id(),
+  spaceId: spaceId(),
+  fromUserId: text("from_user_id").notNull(),
+  toUserId: text("to_user_id").notNull(),
+  cents: integer("cents").notNull(),
+  createdAt: createdAt(),
+});
+
+// Monthly shared budget per expense category.
+export const budgets = pgTable(
+  "budgets",
+  {
+    spaceId: spaceId(),
+    category: text("category").notNull(),
+    cents: integer("cents").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.spaceId, t.category] })],
+);

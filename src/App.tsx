@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import Goals from "./pages/Goals";
 import Tasks from "./pages/Tasks";
 import Calendar from "./pages/Calendar";
+import Finances from "./pages/Finances";
 import type { NewEvent } from "./components/EventDialog";
 import Onboarding from "./pages/Onboarding";
 import type { GoalEdits } from "./components/NewGoalDialog";
@@ -38,6 +39,12 @@ import {
 import { activitySince, type ApiActivity } from "./helpers/activity";
 import { PeopleContext, peopleFrom } from "./helpers/people";
 import {
+  emptyFinances,
+  fromApiFinances,
+  type ApiFinances,
+  type Finances as FinanceData,
+} from "./helpers/finances";
+import {
   applyEdits,
   byDue,
   daysFromToday,
@@ -51,23 +58,25 @@ import {
 
 // Tiny hash router: #goals, #tasks and #calendar open their pages; any other
 // hash stays on Home.
-type Page = "home" | "goals" | "tasks" | "calendar";
+type Page = "home" | "goals" | "tasks" | "calendar" | "finances";
 const pages: Record<string, Page> = {
   "#goals": "goals",
   "#tasks": "tasks",
   "#calendar": "calendar",
+  "#finances": "finances",
 };
 const activeLabel: Record<Page, string> = {
   home: "Home",
   goals: "Our Goals",
   tasks: "Tasks",
   calendar: "Calendar",
+  finances: "Finances",
 };
 
 // How long an Undo toast stays up; deletes wait this long before reaching the API.
 const UNDO_MS = 5000;
 // How often to check for the other partner's changes while the app is showing.
-const REFRESH_MS = 30_000;
+const REFRESH_MS = 10_000;
 function usePage() {
   const read = (): Page =>
     pages[globalThis.location.hash] ?? "home";
@@ -114,6 +123,8 @@ export default function App() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   // The space's weekly check-in day ("Sunday"), shown on the calendar.
   const [checkInDay, setCheckInDay] = useState("Sunday");
+  // Savings funds, shared expenses, settle-ups and the budget.
+  const [finances, setFinances] = useState<FinanceData>(emptyFinances);
   const [members, setMembers] = useState<ApiMember[]>([]);
   const [spaceName, setSpaceName] = useState("");
   const [dataLoaded, setDataLoaded] = useState(false);
@@ -204,6 +215,7 @@ export default function App() {
         `/tasks?doneSince=${encodeURIComponent(doneSince.toISOString())}`,
       ),
       api<{ events: ApiEvent[] }>("/events"),
+      api<ApiFinances>("/finances"),
       // The feed is extra: if it fails, show the rest without it.
       loadActivity().catch((err): ActivityRes => {
         console.warn("Loading activity failed:", err);
@@ -211,7 +223,7 @@ export default function App() {
       }),
     ]);
   };
-  const showAll = ([home, res, all, cal, feed]: Awaited<
+  const showAll = ([home, res, all, cal, money, feed]: Awaited<
     ReturnType<typeof loadAll>
   >) => {
     showActivity(feed);
@@ -232,6 +244,7 @@ export default function App() {
       })),
     );
     setCheckInDay(home.space.checkInDay);
+    setFinances(fromApiFinances(money, home.members));
   };
 
   // Load the space's data once there is a space.
@@ -254,9 +267,10 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `api` is a new function each render
   }, [spaceState]);
 
-  // Pick up the other partner's changes: when the app comes back into view,
-  // and every 30 seconds while it's showing. A refresh is skipped, or its
-  // result dropped, while one of our own changes is still being saved.
+  // Pick up the other partner's changes: when the app comes back into view or
+  // its window gets focus (clicking from another window doesn't change
+  // visibility), and every 10 seconds while it's showing. A refresh is skipped,
+  // or its result dropped, while one of our own changes is still being saved.
   useEffect(() => {
     if (!dataLoaded) return;
     let cancelled = false;
@@ -283,10 +297,14 @@ export default function App() {
     };
     const timer = setInterval(refresh, REFRESH_MS);
     document.addEventListener("visibilitychange", refresh);
+    globalThis.addEventListener("focus", refresh);
+    globalThis.addEventListener("online", refresh); // back from a dropped connection
     return () => {
       cancelled = true;
       clearInterval(timer);
       document.removeEventListener("visibilitychange", refresh);
+      globalThis.removeEventListener("focus", refresh);
+      globalThis.removeEventListener("online", refresh);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `api` is a new function each render
   }, [dataLoaded]);
@@ -737,6 +755,17 @@ export default function App() {
                 onChange={changeTask}
                 onToggle={toggleTask}
                 onDelete={deleteTask}
+              />
+            )}
+            {page === "finances" && (
+              <Finances
+                data={finances}
+                setData={setFinances}
+                api={api}
+                notify={setToast}
+                me={me}
+                members={members}
+                goals={goals}
               />
             )}
             {page === "calendar" && (

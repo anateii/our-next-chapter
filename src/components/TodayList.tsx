@@ -1,19 +1,23 @@
 import { Check, Plus } from "lucide-react";
-import type { Task } from "../types";
+import type { Goal, Task } from "../types";
 import Avatars from "./Avatars";
+import ScrollFade from "./ScrollFade";
 
 const dots = ["var(--dot-1)", "var(--dot-2)", "var(--dot-3)"];
 
 export default function TodayList({
   tasks,
+  goals,
   onToggle,
   onAdd,
 }: Readonly<{
   tasks: readonly Task[];
+  goals: readonly Goal[];
   onToggle: (id: string) => void;
   onAdd: () => void;
 }>) {
   const left = tasks.filter((t) => !t.done).length;
+  const goalTitle = (id?: string) => goals.find((g) => g.id === id)?.title;
 
   return (
     <section id="today" className="card panel">
@@ -31,7 +35,8 @@ export default function TodayList({
       {tasks.length === 0 && (
         <p className="empty">Nothing due today. Enjoy the breathing room.</p>
       )}
-      <ul className="today">
+      {/* The card has a fixed height; tasks that don't fit scroll inside it. */}
+      <ScrollFade as="ul" className="today" fill label="Today's tasks">
         {tasks.map((t, i) => (
           <li key={t.id} className={t.done ? "done" : ""}>
             <button
@@ -46,12 +51,15 @@ export default function TodayList({
             <span className="dot" style={{ background: dots[i % dots.length] }} aria-hidden="true" />
             <div className="today-text">
               <span className="today-title">{t.title}</span>
-              <span className="today-time">{t.time}</span>
+              {/* The time if it has one, else the goal it's for, else nothing */}
+              {(t.time ?? goalTitle(t.goalId)) && (
+                <span className="today-time">{t.time ?? goalTitle(t.goalId)}</span>
+              )}
             </div>
             <Avatars owner={t.owner} />
           </li>
         ))}
-      </ul>
+      </ScrollFade>
     </section>
   );
 }

@@ -40,11 +40,9 @@ export const hasTime = (iso: string) => {
   return d.getHours() !== 0 || d.getMinutes() !== 0;
 };
 
-// Home's Today list shows "6:00 PM", or "Any time" for a day without a time.
-const taskTime = (iso?: string | null) => {
-  if (!iso) return undefined;
-  return hasTime(iso) ? fmtTime(new Date(iso)) : "Any time";
-};
+// "6:00 PM" for a task with a time; nothing for one with just a day.
+const taskTime = (iso?: string | null) =>
+  iso && hasTime(iso) ? fmtTime(new Date(iso)) : undefined;
 
 // Local "YYYY-MM-DD", n days from today.
 export const localDay = (n = 0, from = new Date()) => {

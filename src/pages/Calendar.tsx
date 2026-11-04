@@ -580,7 +580,7 @@ function ItemRow({
         </button>
         <div className="item-main">
           <span className="item-title">{t.title}</span>
-          <span className="item-sub">Task{t.time && t.time !== "Any time" ? ` · ${t.time}` : ""}</span>
+          <span className="item-sub">Task{t.time ? ` · ${t.time}` : ""}</span>
         </div>
         <Avatars owner={t.owner} />
       </li>

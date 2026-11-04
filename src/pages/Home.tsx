@@ -98,7 +98,7 @@ export default function Home({
         <AdventureEmpty goalCount={goalCount} spaceName={spaceName} />
       )}
       <div className="panels">
-        <TodayList tasks={tasks} onToggle={onToggleTask} onAdd={onAddTask} />
+        <TodayList tasks={tasks} goals={goals} onToggle={onToggleTask} onAdd={onAddTask} />
         <WeekAhead events={events} />
       </div>
     </>

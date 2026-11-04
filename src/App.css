@@ -1443,3 +1443,151 @@
   color: var(--alert);
   font-weight: 600;
 }
+
+/* InfoTip: ⓘ next to a heading, with a short explanation */
+.infotip {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+}
+.infotip-btn {
+  width: 28px;
+  height: 28px;
+  margin: -4px 0;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--faint);
+  display: inline-grid;
+  place-items: center;
+  transition:
+    color var(--dur) var(--ease),
+    background var(--dur) var(--ease);
+}
+.infotip-btn:hover,
+.infotip-btn[aria-expanded="true"] {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.infotip-bubble {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: -8px;
+  z-index: 30;
+  width: max-content;
+  max-width: min(280px, calc(100vw - 32px));
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--toast-bg);
+  color: var(--toast-fg);
+  box-shadow: var(--shadow-card);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: normal;
+  text-transform: none;
+  text-align: left;
+  white-space: normal;
+}
+.infotip-bubble.right {
+  left: auto;
+  right: -8px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .infotip-btn {
+    transition: none;
+  }
+}
+
+/* ScrollFade: a list that scrolls inside its card after a few items */
+.scroll-fade {
+  position: relative;
+}
+/* Fill mode: the list takes the card's remaining height */
+.scroll-fade.fill {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.scroll-fade.fill > .scrolls {
+  flex: 1;
+  min-height: 0;
+}
+/* Home's Today and Upcoming cards: one fixed height, side by side */
+.panels > .card {
+  height: 520px;
+}
+@media (max-width: 900px) {
+  /* Stacked on phones: no taller than that, but short lists stay short */
+  .panels > .card {
+    height: auto;
+    max-height: 520px;
+  }
+}
+.scroll-fade > .scrolls {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin-right: -8px;
+  padding-right: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+.scroll-fade > .scrolls:focus-visible {
+  outline-offset: 2px;
+}
+/* Fades the cut-off item into the card, in either theme */
+.scroll-fade-edge {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  /* height: set to the peek, so it starts right below the last full item */
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 4px;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--surface) 0%, transparent),
+    var(--surface) 80%
+  );
+  pointer-events: none;
+}
+.scroll-fade-more {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow-card);
+  display: grid;
+  place-items: center;
+  pointer-events: auto;
+  animation: scroll-nudge 1.8s var(--ease) 2;
+  transition: background var(--dur) var(--ease);
+}
+@media (hover: hover) {
+  .scroll-fade-more:hover {
+    background: var(--accent-soft);
+  }
+}
+/* A gentle nudge, twice, to say "there's more below" */
+@keyframes scroll-nudge {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(3px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-fade-more {
+    animation: none;
+    transition: none;
+  }
+}

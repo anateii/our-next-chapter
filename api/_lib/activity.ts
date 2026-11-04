@@ -9,7 +9,10 @@ export type ActivityKind =
   | "goal_added"
   | "goal_completed"
   | "goal_photo"
-  | "event_added";
+  | "event_added"
+  | "expense_added"
+  | "savings_added"
+  | "settled";
 
 // Record something one of you did. Best effort: a missing feed entry must
 // never fail the change itself.
