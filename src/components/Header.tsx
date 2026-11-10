@@ -1,6 +1,6 @@
 import { useUser } from "@clerk/react";
 
-const homeViews = ["Overview", "Recent activity", "Upcoming"] as const;
+const homeViews = ["Overview", "Recent activity"] as const;
 export type HomeView = (typeof homeViews)[number];
 
 const greeting = () => {

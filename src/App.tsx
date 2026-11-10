@@ -31,7 +31,6 @@ import {
 import { homeQuery, type ApiHome } from "./helpers/home";
 import {
   applyEventEdits,
-  checkIns,
   fromApiEvent,
   toApiEventEdits,
   type ApiEvent,
@@ -54,8 +53,6 @@ import {
 } from "./helpers/ourspace";
 import {
   applyEdits,
-  byDue,
-  daysFromToday,
   fromApiTask,
   groupLabels,
   taskGroup,
@@ -598,24 +595,17 @@ export default function App() {
     });
   };
 
-  // Home's "Upcoming this week": this week's events (Monday to Sunday) and the check-in.
+  // Home's "Upcoming events" stat: plans still ahead this week (Monday to Sunday).
   const weekStart = new Date();
   weekStart.setHours(0, 0, 0, 0);
   weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekStart.getDate() + 7);
-  const weekEvents = [
-    ...events.filter((e) => e.date >= weekStart && e.date < weekEnd),
-    ...checkIns(checkIn, weekStart, new Date(weekEnd.getTime() - 1)),
-  ].sort((a, b) => a.date.getTime() - b.date.getTime());
   const upcomingEvents = events.filter(
     (e) => e.date >= new Date() && e.date < weekEnd,
   ).length;
 
-  // Home shows what's due today; "Tasks to do" counts every open task.
-  const todayTasks = tasks
-    .filter((t) => t.dueAt && daysFromToday(t.dueAt) === 0)
-    .sort(byDue);
+  // "Tasks to do" counts every open task.
   const tasksLeft = tasks.filter((t) => !t.done).length;
   const me = toPerson(userId ?? null, members);
   const steps = goalSteps(tasks, olderDone);
@@ -823,8 +813,8 @@ export default function App() {
             )}
             {page === "home" && (
               <Home
-                tasks={todayTasks}
-                events={weekEvents}
+                tasks={tasks}
+                events={events}
                 tasksLeft={tasksLeft}
                 upcomingEvents={upcomingEvents}
                 onToggleTask={toggleTask}
@@ -857,6 +847,7 @@ export default function App() {
                 myUserId={userId}
                 goals={goals}
                 onSeenActivity={markActivitySeen}
+                checkIn={checkIn}
               />
             )}
           </main>

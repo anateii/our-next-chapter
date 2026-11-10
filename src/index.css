@@ -64,9 +64,6 @@
   --hero-a: #3b3ba8; /* Our Space focus banner gradient */
   --hero-b: #6d5bd6;
   --rose: #b0457a; /* cheers on wins */
-  --flip-top: linear-gradient(180deg, #f7f6ff 0%, #e9e8fb 100%);
-  --flip-bottom: linear-gradient(180deg, #dcdaf6 0%, #e6e5fa 35%, #e2e1f9 100%);
-  --flip-shine: rgba(255, 255, 255, 0.9);
 
   /* Shape & motion */
   --radius-sm: 12px;
@@ -142,9 +139,6 @@
   --hero-a: #2c2b6e;
   --hero-b: #4b3f9e;
   --rose: #ec8fbe;
-  --flip-top: linear-gradient(180deg, #2c2b55 0%, #25244a 100%);
-  --flip-bottom: linear-gradient(180deg, #1f1e40 0%, #252448 35%, #232246 100%);
-  --flip-shine: rgba(255, 255, 255, 0.06);
 
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 28px rgba(0, 0, 0, 0.32);
 }

@@ -6,14 +6,14 @@ import Header, { type HomeView } from "../components/Header";
 import RecentActivity from "../components/RecentActivity";
 import StatCards from "../components/StatCards";
 import AdventureCard from "../components/AdventureCard";
-import Countdown from "../components/Countdown";
 import AdventureEmpty from "../components/AdventureEmpty";
-import TodayList from "../components/TodayList";
-import WeekAhead from "../components/WeekAhead";
+import Upcoming from "../components/Upcoming";
+import type { CheckInSchedule } from "../helpers/checkins";
 
 export default function Home({
   tasks,
   events,
+  checkIn,
   tasksLeft,
   upcomingEvents,
   onToggleTask,
@@ -29,8 +29,9 @@ export default function Home({
   goals,
   onSeenActivity,
 }: Readonly<{
-  tasks: readonly Task[];
-  events: readonly CalendarEvent[];
+  tasks: readonly Task[]; // every task, for the Coming up agenda
+  events: readonly CalendarEvent[]; // every stored event, for the Coming up agenda
+  checkIn: CheckInSchedule;
   tasksLeft: number;
   upcomingEvents: number;
   onToggleTask: (id: string) => void;
@@ -80,6 +81,8 @@ export default function Home({
       </>
     );
 
+  // Overview: stats, the featured adventure, then Next up, the two-week strip
+  // and the Coming up agenda (which also holds today's items and slipped tasks).
   return (
     <>
       {header}
@@ -90,17 +93,18 @@ export default function Home({
         adventure={adventure}
       />
       {adventure ? (
-        <div className="hero-row">
-          <AdventureCard adventure={adventure} />
-          <Countdown adventure={adventure} />
-        </div>
+        <AdventureCard adventure={adventure} />
       ) : (
         <AdventureEmpty goalCount={goalCount} spaceName={spaceName} />
       )}
-      <div className="panels">
-        <TodayList tasks={tasks} goals={goals} onToggle={onToggleTask} onAdd={onAddTask} />
-        <WeekAhead events={events} />
-      </div>
+      <Upcoming
+        tasks={tasks}
+        events={events}
+        checkIn={checkIn}
+        goals={goals}
+        onToggleTask={onToggleTask}
+        onAddTask={onAddTask}
+      />
     </>
   );
 }
