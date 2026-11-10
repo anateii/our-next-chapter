@@ -9,6 +9,7 @@ import AdventureCard from "../components/AdventureCard";
 import AdventureEmpty from "../components/AdventureEmpty";
 import Upcoming from "../components/Upcoming";
 import type { CheckInSchedule } from "../helpers/checkins";
+import { smoothly } from "../helpers/motion";
 
 export default function Home({
   tasks,
@@ -56,7 +57,7 @@ export default function Home({
       setNewSince(lastSeenAt);
       onSeenActivity();
     }
-    setView(v);
+    smoothly(() => setView(v));
   };
 
   const header = (

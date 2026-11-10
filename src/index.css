@@ -72,6 +72,11 @@
   --shadow-card: 0 1px 2px rgba(28, 27, 46, 0.04), 0 10px 28px rgba(28, 27, 46, 0.07);
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --dur: 180ms;
+  --dur-theme: 320ms; /* light/dark switch; keep in step with FADE_MS in helpers/theme.ts */
+  --dur-page-in: 260ms; /* page change: the new page arrives */
+  --dur-page-out: 140ms; /* page change: the old page leaves (faster than it arrives) */
+  --dur-view: 220ms; /* tab, filter or layout change: content cross-fade */
+  --dur-glide: 280ms; /* tab highlight and cards sliding to their new place */
 
   --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
   --font-serif: "Instrument Serif", Georgia, serif;
@@ -182,11 +187,145 @@ input:focus-visible {
   outline-offset: 2px;
 }
 
+/* Light/dark switch (helpers/theme.ts). The browser cross-fades a snapshot
+   of the old page into the new one: opacity only, so it stays smooth. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--dur-theme);
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* Without View Transitions: colours ease for the length of the switch only,
+   so normal hovers and state changes keep their own timing. */
+.theme-changing,
+.theme-changing *,
+.theme-changing *::before,
+.theme-changing *::after {
+  transition:
+    background-color var(--dur-theme) ease,
+    color var(--dur-theme) ease,
+    border-color var(--dur-theme) ease,
+    fill var(--dur-theme) ease,
+    stroke var(--dur-theme) ease,
+    box-shadow var(--dur-theme) ease !important;
+}
+
+/* Page transitions (usePage in App.tsx). Only the main area moves: the old
+   page fades out quickly, the new one fades in while rising 8px. The sidebar
+   stays put and its active link cross-fades. */
+.vt-page .main {
+  view-transition-name: page;
+}
+.vt-page::view-transition-group(page) {
+  animation: none; /* jump to the new page's size; the fades carry the change */
+}
+.vt-page::view-transition-old(page) {
+  animation: page-out var(--dur-page-out) cubic-bezier(0.4, 0, 1, 1) both;
+}
+.vt-page::view-transition-new(page) {
+  animation: page-in var(--dur-page-in) var(--ease) 60ms both;
+}
+.vt-page::view-transition-old(root),
+.vt-page::view-transition-new(root) {
+  animation-duration: var(--dur);
+}
+@keyframes page-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* View switches: tabs, filters and grid/list toggles (smoothly() in
+   helpers/motion.ts). What changed cross-fades; what stays looks still.
+   Cards keep their identity, so they slide to their new place and size. */
+.vt-view::view-transition-old(root),
+.vt-view::view-transition-new(root) {
+  animation-duration: var(--dur-view);
+}
+.vt-view .goal-card,
+.vt-view .board-card,
+.vt-view .task,
+.vt-view .up-item {
+  view-transition-name: match-element;
+  view-transition-class: item;
+}
+.vt-view::view-transition-group(.item) {
+  animation-duration: var(--dur-glide);
+  animation-timing-function: var(--ease);
+}
+/* Tab bars animate their own highlight (below): show them live, not as a fade */
+.vt-view .has-glider {
+  view-transition-name: match-element;
+  view-transition-class: seg;
+}
+.vt-view::view-transition-old(.seg) {
+  animation: none;
+  opacity: 0;
+}
+.vt-view::view-transition-new(.seg) {
+  animation: none;
+}
+
+/* Sliding highlight for tab bars and view toggles (helpers/glider.ts sets
+   --gx/--gy/--gw/--gh to the pressed button). One highlight glides between
+   buttons instead of each button switching its own background. */
+.segmented {
+  --glider-radius: 11px;
+}
+.mini-seg {
+  --glider-radius: 9px;
+}
+.view-toggle {
+  --glider-radius: var(--radius-sm);
+}
+.has-glider {
+  position: relative;
+  isolation: isolate;
+}
+.has-glider::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  width: var(--gw, 0);
+  height: var(--gh, 0);
+  transform: translate(var(--gx, 0), var(--gy, 0));
+  border-radius: var(--glider-radius);
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgba(28, 27, 46, 0.1);
+  opacity: var(--go, 0);
+  pointer-events: none;
+}
+.has-glider.glider-ready::before {
+  transition:
+    transform var(--dur-glide) var(--ease),
+    width var(--dur-glide) var(--ease),
+    height var(--dur-glide) var(--ease),
+    opacity var(--dur) var(--ease);
+}
+/* The highlight replaces the pressed button's own background. !important:
+   each tab bar styles its pressed button with its own, more specific rule. */
+.has-glider > [aria-pressed="true"] {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     transition: none !important;
+    animation: none !important;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
     animation: none !important;
   }
 }

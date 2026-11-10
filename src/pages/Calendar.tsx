@@ -24,6 +24,7 @@ import { usePeople } from "../helpers/people";
 import Avatars from "../components/Avatars";
 import EventDialog, { type NewEvent } from "../components/EventDialog";
 import "./Calendar.css";
+import { smoothly } from "../helpers/motion";
 
 type Who = "all" | Person;
 type Layer = "events" | "tasks" | "goals" | "checkins";
@@ -222,7 +223,7 @@ export default function Calendar({
             className="icon-btn"
             aria-label="Month view"
             aria-pressed={view === "month"}
-            onClick={() => setView("month")}
+            onClick={() => smoothly(() => setView("month"))}
           >
             <LayoutGrid aria-hidden="true" size={18} />
           </button>
@@ -231,7 +232,7 @@ export default function Calendar({
             className="icon-btn"
             aria-label="List view"
             aria-pressed={view === "list"}
-            onClick={() => setView("list")}
+            onClick={() => smoothly(() => setView("list"))}
           >
             <List aria-hidden="true" size={18} />
           </button>
@@ -246,7 +247,7 @@ export default function Calendar({
               type="button"
               aria-pressed={o.key === who}
               className={o.key === who ? "active" : ""}
-              onClick={() => setWho(o.key)}
+              onClick={() => smoothly(() => setWho(o.key))}
             >
               {o.key !== "all" && <Avatars owner={o.key} />}
               {o.label}

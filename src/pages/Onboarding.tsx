@@ -8,7 +8,6 @@ import {
   ChevronRight,
   CircleAlert,
   Copy,
-  Heart,
   KeyRound,
   LoaderCircle,
   Plus,
@@ -16,17 +15,37 @@ import {
   X,
 } from "lucide-react";
 import { useApi } from "../helpers/api";
-import { frequencies, nextCheckIn, weekdays, type CheckInEvery } from "../helpers/checkins";
+import {
+  frequencies,
+  nextCheckIn,
+  weekdays,
+  type CheckInEvery,
+} from "../helpers/checkins";
 import type { MilestoneIcon } from "../helpers/ourspace";
 import EmojiPicker, { MilestoneMark } from "../components/EmojiPicker";
 import "./Onboarding.css";
 
-type Step = "welcome" | "create" | "focus" | "roadmap" | "checkin" | "invite" | "join" | "done";
+type Step =
+  | "welcome"
+  | "create"
+  | "focus"
+  | "roadmap"
+  | "checkin"
+  | "invite"
+  | "join"
+  | "done";
 // Starting a space: these steps, in order, with "Step n of 5".
 const createSteps: Step[] = ["create", "focus", "roadmap", "checkin", "invite"];
-const stepOf = (s: Step) => `Step ${createSteps.indexOf(s) + 1} of ${createSteps.length}`;
+const stepOf = (s: Step) =>
+  `Step ${createSteps.indexOf(s) + 1} of ${createSteps.length}`;
 
-type DraftMilestone = { key: string; title: string; icon: MilestoneIcon; emoji?: string; when: string };
+type DraftMilestone = {
+  key: string;
+  title: string;
+  icon: MilestoneIcon;
+  emoji?: string;
+  when: string;
+};
 const MAX_MILESTONES = 8;
 // Tap to add, each with an emoji; both can be changed here or later in Our Space.
 // `icon` is the fallback the API keeps alongside the emoji.
@@ -37,21 +56,34 @@ const suggestions: { title: string; icon: MilestoneIcon; emoji: string }[] = [
   { title: "A big trip", icon: "plane", emoji: "✈️" },
   { title: "Adopt a pet", icon: "star", emoji: "🐶" },
 ];
-const longDay = new Intl.DateTimeFormat(undefined, { weekday: "long", day: "numeric", month: "long" });
+const longDay = new Intl.DateTimeFormat(undefined, {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+});
 type Invite = { code: string; expiresAt: string; daysLeft: number };
 
 // API error messages (api/join.ts) -> what to tell the person.
 const joinErrors: Record<string, string> = {
-  "Invalid code": "We couldn't find that code. Check it with your partner and try again.",
-  "Code expired": "This code has expired. Ask your partner to create a new invite.",
-  "Code already used": "This code was already used. Ask your partner for a new one.",
+  "Invalid code":
+    "We couldn't find that code. Check it with your partner and try again.",
+  "Code expired":
+    "This code has expired. Ask your partner to create a new invite.",
+  "Code already used":
+    "This code was already used. Ask your partner for a new one.",
 };
 
 const CODE_LENGTH = 8;
 const tidyCode = (v: string) =>
-  v.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, CODE_LENGTH);
+  v
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, CODE_LENGTH);
 
-function FieldError({ id, children }: Readonly<{ id: string; children: string }>) {
+function FieldError({
+  id,
+  children,
+}: Readonly<{ id: string; children: string }>) {
   return (
     <p id={id} className="field-error" role="alert">
       <CircleAlert aria-hidden="true" size={16} />
@@ -64,7 +96,10 @@ function FieldError({ id, children }: Readonly<{ id: string; children: string }>
 // screen can be clicked through without creating anything.
 const fakeResponse = (init?: RequestInit) =>
   String(init?.body ?? "").includes('"invite"')
-    ? { code: "PREVIEW1", expiresAt: new Date(Date.now() + 7 * 86_400_000).toISOString() }
+    ? {
+        code: "PREVIEW1",
+        expiresAt: new Date(Date.now() + 7 * 86_400_000).toISOString(),
+      }
     : {};
 
 // First-run flow for someone without a space: start one (and invite a
@@ -76,7 +111,9 @@ export default function Onboarding({
   const realApi = useApi();
   const api = <T,>(path: string, init?: RequestInit): Promise<T> =>
     preview
-      ? new Promise((resolve) => setTimeout(() => resolve(fakeResponse(init) as T), 700))
+      ? new Promise((resolve) =>
+          setTimeout(() => resolve(fakeResponse(init) as T), 700),
+        )
       : realApi<T>(path, init);
   const { user } = useUser();
   const { signOut } = useClerk();
@@ -139,7 +176,10 @@ export default function Onboarding({
       .then((inv) =>
         setInvite({
           ...inv,
-          daysLeft: Math.max(1, Math.round((Date.parse(inv.expiresAt) - Date.now()) / 86_400_000)),
+          daysLeft: Math.max(
+            1,
+            Math.round((Date.parse(inv.expiresAt) - Date.now()) / 86_400_000),
+          ),
         }),
       )
       .catch(() => setInviteFailed(true));
@@ -148,16 +188,26 @@ export default function Onboarding({
   // Step 1 only checks the name; the space is created after the check-in step.
   const submitName = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!requireName("Add your name so your partner knows who started the space.")) return;
+    if (
+      !requireName("Add your name so your partner knows who started the space.")
+    )
+      return;
     goTo("focus");
   };
 
   const hasMilestone = (title: string) =>
     roadmap.some((m) => m.title.toLowerCase() === title.trim().toLowerCase());
-  const addMilestone = (title: string, icon: MilestoneIcon = "star", emoji?: string) => {
+  const addMilestone = (
+    title: string,
+    icon: MilestoneIcon = "star",
+    emoji?: string,
+  ) => {
     const t = title.trim();
     if (!t || hasMilestone(t) || roadmap.length >= MAX_MILESTONES) return;
-    setRoadmap((r) => [...r, { key: crypto.randomUUID(), title: t, icon, emoji, when: "" }]);
+    setRoadmap((r) => [
+      ...r,
+      { key: crypto.randomUUID(), title: t, icon, emoji, when: "" },
+    ]);
   };
   const setEmoji = (key: string, emoji?: string) =>
     setRoadmap((r) => r.map((m) => (m.key === key ? { ...m, emoji } : m)));
@@ -165,9 +215,14 @@ export default function Onboarding({
   const [picking, setPicking] = useState<string | null>(null);
   const closePicker = (key: string) => {
     setPicking(null);
-    requestAnimationFrame(() => document.querySelector<HTMLElement>(`[aria-controls="ob-emoji-${key}"]`)?.focus());
+    requestAnimationFrame(() =>
+      document
+        .querySelector<HTMLElement>(`[aria-controls="ob-emoji-${key}"]`)
+        ?.focus(),
+    );
   };
-  const removeMilestone = (key: string) => setRoadmap((r) => r.filter((m) => m.key !== key));
+  const removeMilestone = (key: string) =>
+    setRoadmap((r) => r.filter((m) => m.key !== key));
   const moveMilestone = (index: number, by: -1 | 1) =>
     setRoadmap((r) => {
       const next = [...r];
@@ -175,7 +230,9 @@ export default function Onboarding({
       return next;
     });
   const toggleSuggestion = (sug: (typeof suggestions)[number]) => {
-    const found = roadmap.find((m) => m.title.toLowerCase() === sug.title.toLowerCase());
+    const found = roadmap.find(
+      (m) => m.title.toLowerCase() === sug.title.toLowerCase(),
+    );
     if (found) removeMilestone(found.key);
     else addMilestone(sug.title, sug.icon, sug.emoji);
   };
@@ -195,14 +252,22 @@ export default function Onboarding({
           focus: focus.trim(),
           checkInDay,
           checkInEvery: every,
-          milestones: roadmap.map((m) => ({ title: m.title, icon: m.icon, emoji: m.emoji, when: m.when.trim() })),
+          milestones: roadmap.map((m) => ({
+            title: m.title,
+            icon: m.icon,
+            emoji: m.emoji,
+            when: m.when.trim(),
+          })),
         }),
       });
       goTo("invite");
       createInvite();
     } catch (err) {
-      if ((err as Error).message === "You already have a space") return onDone();
-      setFormError("We couldn't create your space. Check your connection and try again.");
+      if ((err as Error).message === "You already have a space")
+        return onDone();
+      setFormError(
+        "We couldn't create your space. Check your connection and try again.",
+      );
     } finally {
       setBusy(false);
     }
@@ -210,7 +275,9 @@ export default function Onboarding({
 
   const submitJoin = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const nameOk = requireName("Add your name so your partner sees who joined.");
+    const nameOk = requireName(
+      "Add your name so your partner sees who joined.",
+    );
     if (code.length !== CODE_LENGTH) {
       setCodeError(`Enter all ${CODE_LENGTH} characters of the code.`);
       if (nameOk) codeRef.current?.focus();
@@ -222,7 +289,11 @@ export default function Onboarding({
     try {
       await api("/space", {
         method: "POST",
-        body: JSON.stringify({ action: "join", code, displayName: trimmedName }),
+        body: JSON.stringify({
+          action: "join",
+          code,
+          displayName: trimmedName,
+        }),
       });
       goTo("done");
     } catch (err) {
@@ -232,7 +303,9 @@ export default function Onboarding({
         setCodeError(joinErrors[message]);
         codeRef.current?.focus();
       } else {
-        setFormError("We couldn't join right now. Check your connection and try again.");
+        setFormError(
+          "We couldn't join right now. Check your connection and try again.",
+        );
       }
     } finally {
       setBusy(false);
@@ -252,10 +325,14 @@ export default function Onboarding({
 
   // Phones get the system share sheet; elsewhere the message is copied.
   const share = async (inv: Invite) => {
-    const text = `Join me on Our Next Chapter! Sign in, choose "Join with an invite code" and enter ${inv.code}.`;
+    const text = `Join me on Ourly! Sign in, choose "Join with an invite code" and enter ${inv.code}.`;
     if (navigator.share) {
       try {
-        await navigator.share({ title: "Our Next Chapter", text, url: globalThis.location.origin });
+        await navigator.share({
+          title: "Ourly",
+          text,
+          url: globalThis.location.origin,
+        });
         return;
       } catch (err) {
         if ((err as Error).name === "AbortError") return; // they closed the sheet
@@ -265,14 +342,27 @@ export default function Onboarding({
   };
 
   const backButton = (to: Step = "welcome") => (
-    <button type="button" className="icon-btn ob-back" aria-label="Back" onClick={() => goTo(to)}>
+    <button
+      type="button"
+      className="icon-btn ob-back"
+      aria-label="Back"
+      onClick={() => goTo(to)}
+    >
       <ArrowLeft aria-hidden="true" size={20} />
     </button>
   );
-  const firstCheckIn = nextCheckIn({ day: checkInDay, every, since: new Date() }, []);
+  const firstCheckIn = nextCheckIn(
+    { day: checkInDay, every, since: new Date() },
+    [],
+  );
 
   const submitButton = (label: string, busyLabel: string) => (
-    <button type="submit" className="btn-primary ob-cta" disabled={busy} aria-busy={busy}>
+    <button
+      type="submit"
+      className="btn-primary ob-cta"
+      disabled={busy}
+      aria-busy={busy}
+    >
       {busy && <LoaderCircle className="spin" aria-hidden="true" size={18} />}
       {busy ? busyLabel : label}
     </button>
@@ -293,7 +383,10 @@ export default function Onboarding({
           <h1 ref={headingRef} tabIndex={-1}>
             Let's set up your shared space
           </h1>
-          <p>Goals, tasks and your countdown all live in one space the two of you share.</p>
+          <p>
+            Goals, tasks and your countdown all live in one space the two of you
+            share.
+          </p>
         </div>
         <div className="ob-choices">
           <button
@@ -366,7 +459,9 @@ export default function Onboarding({
               setNameError("");
             }}
             aria-invalid={nameError ? true : undefined}
-            aria-describedby={nameError ? "ob-name-error ob-name-hint" : "ob-name-hint"}
+            aria-describedby={
+              nameError ? "ob-name-error ob-name-hint" : "ob-name-hint"
+            }
           />
           {nameError && <FieldError id="ob-name-error">{nameError}</FieldError>}
           <p id="ob-name-hint" className="field-hint">
@@ -382,7 +477,9 @@ export default function Onboarding({
             maxLength={60}
             value={spaceName}
             onChange={(e) => setSpaceName(e.target.value)}
-            placeholder={trimmedName ? `${trimmedName} & partner` : "Sam & Alex"}
+            placeholder={
+              trimmedName ? `${trimmedName} & partner` : "Sam & Alex"
+            }
             aria-describedby="ob-space-hint"
           />
           <p id="ob-space-hint" className="field-hint">
@@ -414,7 +511,10 @@ export default function Onboarding({
           <h1 ref={headingRef} tabIndex={-1}>
             What are you working toward?
           </h1>
-          <p>One line for this chapter of your life. It sits at the top of Our Space.</p>
+          <p>
+            One line for this chapter of your life. It sits at the top of Our
+            Space.
+          </p>
         </div>
         <div className="field">
           <label htmlFor="ob-focus">Our focus</label>
@@ -522,7 +622,9 @@ export default function Onboarding({
             <button
               type="button"
               className="btn-secondary"
-              disabled={full || !customTitle.trim() || hasMilestone(customTitle)}
+              disabled={
+                full || !customTitle.trim() || hasMilestone(customTitle)
+              }
               onClick={() => {
                 addMilestone(customTitle);
                 setCustomTitle("");
@@ -531,7 +633,11 @@ export default function Onboarding({
               Add
             </button>
           </div>
-          {full && <p className="field-hint">That's 8. You can add more later in Our Space.</p>}
+          {full && (
+            <p className="field-hint">
+              That's 8. You can add more later in Our Space.
+            </p>
+          )}
         </div>
 
         {roadmap.length > 0 && (
@@ -563,7 +669,13 @@ export default function Onboarding({
                       placeholder="When? (optional)"
                       value={m.when}
                       onChange={(e) =>
-                        setRoadmap((r) => r.map((x) => (x.key === m.key ? { ...x, when: e.target.value } : x)))
+                        setRoadmap((r) =>
+                          r.map((x) =>
+                            x.key === m.key
+                              ? { ...x, when: e.target.value }
+                              : x,
+                          ),
+                        )
                       }
                     />
                   </div>
@@ -625,7 +737,11 @@ export default function Onboarding({
             Continue
           </button>
           {roadmap.length === 0 && (
-            <button type="button" className="ob-skip" onClick={() => goTo("checkin")}>
+            <button
+              type="button"
+              className="ob-skip"
+              onClick={() => goTo("checkin")}
+            >
               Skip for now
             </button>
           )}
@@ -644,8 +760,8 @@ export default function Onboarding({
             Make time to check in
           </h1>
           <p>
-            A few minutes together: how it went, what was hard, and one thing for next time. It goes on
-            your calendar.
+            A few minutes together: how it went, what was hard, and one thing
+            for next time. It goes on your calendar.
           </p>
         </div>
 
@@ -666,9 +782,15 @@ export default function Onboarding({
                   <span className="ob-option-text">
                     <strong>
                       {f.label}
-                      {f.recommended && <span className="ob-recommended">Recommended</span>}
+                      {f.recommended && (
+                        <span className="ob-recommended">Recommended</span>
+                      )}
                     </strong>
-                    <span>{f.key === "monthly" ? `The first ${checkInDay} of each month` : f.hint}</span>
+                    <span>
+                      {f.key === "monthly"
+                        ? `The first ${checkInDay} of each month`
+                        : f.hint}
+                    </span>
                   </span>
                 </span>
               </label>
@@ -678,13 +800,19 @@ export default function Onboarding({
 
         <div className="field">
           <label htmlFor="ob-day">Which day?</label>
-          <select id="ob-day" value={checkInDay} onChange={(e) => setCheckInDay(e.target.value)}>
+          <select
+            id="ob-day"
+            value={checkInDay}
+            onChange={(e) => setCheckInDay(e.target.value)}
+          >
             {weekdays.map((d) => (
               <option key={d}>{d}</option>
             ))}
           </select>
           <p className="field-hint" aria-live="polite">
-            {firstCheckIn ? `Your first one: ${longDay.format(firstCheckIn.day)}, all day.` : ""}
+            {firstCheckIn
+              ? `Your first one: ${longDay.format(firstCheckIn.day)}, all day.`
+              : ""}
           </p>
         </div>
 
@@ -708,8 +836,8 @@ export default function Onboarding({
             Your space is ready
           </h1>
           <p>
-            Now invite your partner. They sign in, choose “Join with an invite code” and enter this
-            code.
+            Now invite your partner. They sign in, choose “Join with an invite
+            code” and enter this code.
           </p>
         </div>
 
@@ -718,7 +846,10 @@ export default function Onboarding({
           {invite && (
             <>
               <div className="ob-code-row">
-                <span className="ob-code" aria-label={invite.code.split("").join(" ")}>
+                <span
+                  className="ob-code"
+                  aria-label={invite.code.split("").join(" ")}
+                >
                   {invite.code.slice(0, 4)} {invite.code.slice(4)}
                 </span>
                 <button
@@ -735,19 +866,25 @@ export default function Onboarding({
                 </button>
               </div>
               <span className="field-hint">
-                Works once · expires in {invite.daysLeft} {invite.daysLeft === 1 ? "day" : "days"}
+                Works once · expires in {invite.daysLeft}{" "}
+                {invite.daysLeft === 1 ? "day" : "days"}
               </span>
             </>
           )}
           {!invite && !inviteFailed && (
             <p className="ob-code-loading" role="status">
-              <LoaderCircle className="spin" aria-hidden="true" size={18} /> Creating a code…
+              <LoaderCircle className="spin" aria-hidden="true" size={18} />{" "}
+              Creating a code…
             </p>
           )}
           {inviteFailed && (
             <div className="ob-code-failed" role="alert">
               <p>We couldn't create an invite code.</p>
-              <button type="button" className="btn-secondary" onClick={createInvite}>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={createInvite}
+              >
                 Try again
               </button>
             </div>
@@ -772,7 +909,11 @@ export default function Onboarding({
             )}
             {copied === "message" ? "Invite copied" : "Share invite"}
           </button>
-          <button type="button" className="ob-skip" onClick={() => goTo("done")}>
+          <button
+            type="button"
+            className="ob-skip"
+            onClick={() => goTo("done")}
+          >
             I'll invite them later
           </button>
         </div>
@@ -786,7 +927,9 @@ export default function Onboarding({
           <h1 ref={headingRef} tabIndex={-1}>
             Join your partner's space
           </h1>
-          <p>Ask them for the {CODE_LENGTH}-character code from their invite.</p>
+          <p>
+            Ask them for the {CODE_LENGTH}-character code from their invite.
+          </p>
         </div>
         <div className="field">
           <label htmlFor="ob-name">Your name</label>
@@ -824,7 +967,9 @@ export default function Onboarding({
             }}
             placeholder="3F9A1C2B"
             aria-invalid={codeError ? true : undefined}
-            aria-describedby={codeError ? "ob-code-error ob-code-hint" : "ob-code-hint"}
+            aria-describedby={
+              codeError ? "ob-code-error ob-code-hint" : "ob-code-hint"
+            }
           />
           {codeError && <FieldError id="ob-code-error">{codeError}</FieldError>}
           <p id="ob-code-hint" className="field-hint">
@@ -845,7 +990,9 @@ export default function Onboarding({
             <Check size={34} strokeWidth={2.4} />
           </span>
           <h1 ref={headingRef} tabIndex={-1}>
-            {path === "join" ? `You're in, ${trimmedName}!` : `All set, ${trimmedName}!`}
+            {path === "join"
+              ? `You're in, ${trimmedName}!`
+              : `All set, ${trimmedName}!`}
           </h1>
           <p>
             {path === "join"
@@ -873,8 +1020,7 @@ export default function Onboarding({
   return (
     <div className="onboarding">
       <div className="ob-brand">
-        <Heart aria-hidden="true" size={24} strokeWidth={2.2} />
-        <span>Our Next Chapter</span>
+        <img src="/ourly-logo.png" alt="Ourly" />
       </div>
       <main id="main" className="ob-card">
         {screen}

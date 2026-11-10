@@ -22,6 +22,7 @@ import TaskRow from "../components/TaskRow";
 import TaskBoard from "../components/TaskBoard";
 import TaskDetails from "../components/TaskDetails";
 import "./Tasks.css";
+import { smoothly } from "../helpers/motion";
 
 type Who = "all" | Person;
 const groupOrder: TaskGroup[] = ["overdue", "today", "tomorrow", "week", "later", "someday", "done"];
@@ -224,7 +225,7 @@ export default function Tasks({
               type="button"
               aria-pressed={o.key === who}
               className={o.key === who ? "active" : ""}
-              onClick={() => setWho(o.key)}
+              onClick={() => smoothly(() => setWho(o.key))}
             >
               {o.key !== "all" && <Avatars owner={o.key} />}
               {/* One span, so the count shares the label's line (the button
@@ -241,7 +242,7 @@ export default function Tasks({
             className="icon-btn"
             aria-label="Board view"
             aria-pressed={view === "board"}
-            onClick={() => setView("board")}
+            onClick={() => smoothly(() => setView("board"))}
           >
             <LayoutGrid aria-hidden="true" size={18} />
           </button>
@@ -250,7 +251,7 @@ export default function Tasks({
             className="icon-btn"
             aria-label="List view"
             aria-pressed={view === "list"}
-            onClick={() => setView("list")}
+            onClick={() => smoothly(() => setView("list"))}
           >
             <List aria-hidden="true" size={18} />
           </button>

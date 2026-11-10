@@ -15,7 +15,9 @@ import { logActivity } from "./_lib/activity.js";
 // Everything on the Our Space page goes through this one endpoint (the Vercel
 // Hobby plan allows 12 functions). Writes say what they're about with `type`:
 //   POST   { type: "milestone" | "win" | "checkin", ... }
-//   PATCH  { type: "milestone" | "win", id, ... }  or  { type: "space", focus }
+//   PATCH  { type: "milestone" | "win", id, ... }
+//          { type: "space", name?, focus?, checkInDay?, checkInEvery? }
+//          { type: "member", displayName }   your name, as your partner sees it
 //          { type: "roadmap", milestones: [{ id, title, icon, emoji, status, when }], deleted: [id] }
 //   DELETE ?type=milestone|win|checkin&id=...
 
@@ -258,13 +260,50 @@ async function addCheckin(me: Me, userId: string, b: Body) {
   return json({ checkin: toCheckin(c) }, 201);
 }
 
-/* The space itself: just the focus line (name and check-in day aren't edited here) */
+/* The space itself: any of its name, focus line and check-in schedule (Settings and Our Space) */
+
+// Keep in step with src/helpers/checkins.ts and api/space.ts.
+const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const FREQUENCIES = ["weekly", "biweekly", "monthly"];
 
 async function editSpace(me: Me, b: Body) {
-  const focus = optStr(b.focus, 140);
-  if (focus === undefined) return bad("focus must be at most 140 characters");
-  const [s] = await db.update(spaces).set({ focus }).where(eq(spaces.id, me.spaceId)).returning();
-  return json({ space: { focus: s.focus } });
+  const set: Partial<typeof spaces.$inferInsert> = {};
+  if ("name" in b) {
+    const name = str(b.name, 60);
+    if (name === undefined) return bad("name must be 1-60 characters");
+    set.name = name;
+  }
+  if ("focus" in b) {
+    const focus = optStr(b.focus, 140);
+    if (focus === undefined) return bad("focus must be at most 140 characters");
+    set.focus = focus;
+  }
+  if ("checkInDay" in b) {
+    if (!oneOf(WEEKDAYS, b.checkInDay)) return bad("checkInDay must be a weekday name");
+    set.checkInDay = b.checkInDay;
+  }
+  if ("checkInEvery" in b) {
+    if (!oneOf(FREQUENCIES, b.checkInEvery))
+      return bad(`checkInEvery must be one of: ${FREQUENCIES.join(", ")}`);
+    set.checkInEvery = b.checkInEvery;
+  }
+  if (!Object.keys(set).length) return bad("nothing to change");
+  const [s] = await db.update(spaces).set(set).where(eq(spaces.id, me.spaceId)).returning();
+  return json({
+    space: { name: s.name, focus: s.focus, checkInDay: s.checkInDay, checkInEvery: s.checkInEvery },
+  });
+}
+
+/* You in this space: the name your partner sees */
+
+async function editMember(me: Me, b: Body) {
+  const displayName = str(b.displayName, 40);
+  if (displayName === undefined) return bad("displayName must be 1-40 characters");
+  await db
+    .update(members)
+    .set({ displayName })
+    .where(and(eq(members.spaceId, me.spaceId), eq(members.clerkUserId, me.clerkUserId)));
+  return json({ member: { displayName } });
 }
 
 export async function POST(req: Request) {
@@ -288,6 +327,7 @@ export async function PATCH(req: Request) {
   if (error) return error;
   const b: Body = await req.json().catch(() => ({}));
   if (b.type === "space") return editSpace(me, b);
+  if (b.type === "member") return editMember(me, b);
   if (b.type === "roadmap") return saveRoadmap(me, b);
   if (typeof b.id !== "string") return bad("id is required");
   switch (b.type) {

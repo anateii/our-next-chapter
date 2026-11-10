@@ -35,6 +35,7 @@ import {
   type FundFields,
 } from "../components/FinanceDialogs";
 import "./Finances.css";
+import { smoothly } from "../helpers/motion";
 
 type Api = <T>(path: string, init?: RequestInit) => Promise<T>;
 type Notify = (t: { message: string; ok: boolean; undo?: () => void }) => void;
@@ -589,7 +590,7 @@ export default function Finances({
                 type="button"
                 aria-pressed={paidFilter === k}
                 className={paidFilter === k ? "active" : ""}
-                onClick={() => setPaidFilter(k as "all" | Partner)}
+                onClick={() => smoothly(() => setPaidFilter(k as "all" | Partner))}
               >
                 {k !== "all" && <Avatars owner={k as Partner} />}
                 {l}

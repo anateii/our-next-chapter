@@ -5,14 +5,9 @@ import {
   CalendarDays,
   Wallet,
   Smile,
-  Settings,
-  Moon,
-  Sun,
 } from "lucide-react";
-import { UserButton } from "@clerk/react";
-import Avatars from "./Avatars";
-import { useTheme } from "../helpers/theme";
-import { usePeople } from "../helpers/people";
+import AccountMenu from "./AccountMenu";
+import type { SettingsTab } from "./SettingsDialog";
 
 // On small screens the nav becomes a bottom bar, which holds at most five
 // items; "secondary" ones move to the top app bar instead.
@@ -25,15 +20,16 @@ const items = [
   { label: "Our Space", icon: Smile, href: "#space", secondary: true },
 ];
 
-export default function Sidebar({ active = "Home" }: Readonly<{ active?: string }>) {
-  const { theme, toggle } = useTheme();
-  const { couple, partner } = usePeople();
-  const dark = theme === "dark";
+export default function Sidebar({
+  active = "Home",
+  onOpenSettings,
+}: Readonly<{ active?: string; onOpenSettings: (tab: SettingsTab) => void }>) {
   return (
     <aside className="sidebar">
       <a className="brand" href="#home">
-        <Heart aria-hidden="true" size={26} strokeWidth={2.2} />
-        <span>Our Next Chapter</span>
+        {/* One per theme; CSS shows the one that matches [data-theme] */}
+        <img className="brand-light" src="/ourly-logo-sidebar.png" alt="Ourly" width={404} height={120} />
+        <img className="brand-dark" src="/ourly-logo-dark-sidebar.png" alt="Ourly" width={404} height={120} />
       </a>
       <nav aria-label="Main">
         {items.map(({ label, icon: Icon, href, secondary }) => (
@@ -59,29 +55,10 @@ export default function Sidebar({ active = "Home" }: Readonly<{ active?: string 
           href="#space"
           aria-current={active === "Our Space" ? "page" : undefined}
         >
-          <Smile aria-hidden="true" size={20} /> <span className="nav-label">Our Space</span>
+          <Smile aria-hidden="true" size={20} />{" "}
+          <span className="nav-label">Our Space</span>
         </a>
-        <div className="couple">
-          <Avatars owner={partner ? "Both" : "owner"} />
-          <span className="couple-name">{couple}</span>
-          <span className="couple-user">
-            <UserButton />
-          </span>
-        </div>
-        <button
-          type="button"
-          className="nav-link theme-toggle"
-          aria-label={dark ? "Switch to light theme" : "Switch to dark theme"}
-          onClick={toggle}
-        >
-          {dark ? <Sun aria-hidden="true" size={20} /> : <Moon aria-hidden="true" size={20} />}
-          <span className="nav-label" aria-hidden="true">
-            {dark ? "Light mode" : "Dark mode"}
-          </span>
-        </button>
-        <a className="nav-link" href="#settings">
-          <Settings aria-hidden="true" size={20} /> <span className="nav-label">Settings</span>
-        </a>
+        <AccountMenu onOpenSettings={onOpenSettings} />
       </div>
     </aside>
   );

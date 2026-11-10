@@ -1,0 +1,283 @@
+/* Settings: a large dialog, section tabs on the left, the open section on the right.
+   Builds on .dialog, .dialog-head, .field and the buttons in App.css. */
+.dialog.settings {
+  width: min(900px, calc(100% - 32px));
+  height: min(640px, calc(100dvh - 32px));
+  max-height: none;
+  overflow: hidden;
+}
+.dialog.settings[open] {
+  display: flex;
+}
+
+.settings-nav {
+  width: 240px;
+  flex-shrink: 0;
+  padding: 18px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  background: var(--surface-sunken);
+  border-right: 1px solid var(--line);
+}
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.settings-group-label {
+  margin: 4px 10px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.settings-tab {
+  min-height: 40px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+}
+@media (hover: hover) {
+  .settings-tab:hover {
+    background: var(--hover);
+  }
+}
+.settings-tab[aria-current="page"] {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-weight: 600;
+}
+.settings-signout {
+  margin-top: auto;
+}
+
+.settings-pane {
+  flex: 1;
+  min-width: 0;
+  padding: 22px 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow-y: auto;
+}
+.settings-form {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.settings-form .dialog-actions {
+  margin-top: auto;
+}
+.settings-text {
+  font-size: 14px;
+  color: var(--muted);
+  max-width: 60ch;
+}
+.settings-form input[readonly] {
+  color: var(--muted);
+}
+fieldset.settings-form,
+.settings-choices {
+  margin: 0;
+  padding: 0;
+  border: none;
+  min-width: 0;
+}
+.settings-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.settings-choices legend {
+  margin-bottom: 8px;
+}
+.field-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Profile photo */
+.settings-photo {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.settings-photo img,
+.settings-photo .avatar {
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  font-size: 26px;
+  border: none;
+}
+.settings-photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Radio cards: theme and check-in frequency */
+.settings-choice {
+  position: relative;
+  min-height: 60px;
+  padding: 10px 44px 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition:
+    border-color var(--dur) var(--ease),
+    background var(--dur) var(--ease);
+}
+.settings-choice input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.settings-choice > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.settings-choice strong {
+  font-size: 15px;
+  font-weight: 600;
+}
+.settings-choice > span > span {
+  font-size: 13px;
+  color: var(--muted);
+}
+.settings-choice-check {
+  position: absolute;
+  right: 14px;
+  color: var(--accent);
+  opacity: 0;
+}
+.settings-choice:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.settings-choice:has(input:checked) .settings-choice-check {
+  opacity: 1;
+}
+.settings-choice:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Partner */
+.settings-members {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.settings-members li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.settings-members .avatar {
+  width: 40px;
+  height: 40px;
+  font-size: 15px;
+  border: none;
+}
+.settings-members li > span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.settings-members strong {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.settings-you {
+  font-weight: 500;
+  color: var(--muted);
+}
+.settings-invite {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.settings-invite h3 {
+  font-size: 16px;
+  font-weight: 700;
+}
+.settings-code {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+.settings-code > span {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  font-variant-numeric: tabular-nums;
+}
+.settings-code .field-hint {
+  flex-basis: 100%;
+}
+
+/* Phones: a full-height sheet, sections become a scrolling row of tabs */
+@media (max-width: 640px) {
+  .dialog.settings {
+    width: 100%;
+    height: 92dvh;
+  }
+  .dialog.settings[open] {
+    flex-direction: column;
+  }
+  .settings-nav {
+    width: auto;
+    padding: 10px 12px;
+    flex-direction: row;
+    gap: 4px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+  }
+  .settings-group {
+    flex-direction: row;
+  }
+  .settings-group-label {
+    display: none;
+  }
+  .settings-signout {
+    margin-top: 0;
+  }
+  .settings-pane {
+    padding: 16px 16px calc(20px + env(safe-area-inset-bottom));
+  }
+  .settings-form .field-row {
+    flex-direction: column;
+  }
+}

@@ -5,6 +5,7 @@ import { checkIns, kindIcons, kindLabel } from "../helpers/events";
 import type { CheckInSchedule } from "../helpers/checkins";
 import { daysFromToday, hasTime } from "../helpers/tasks";
 import Avatars from "./Avatars";
+import { smoothly } from "../helpers/motion";
 
 type Kind = "event" | "task" | "goal";
 type Show = "all" | Kind;
@@ -284,7 +285,7 @@ export default function Upcoming({
                 key={s.key}
                 type="button"
                 aria-pressed={show === s.key}
-                onClick={() => setShow(s.key)}
+                onClick={() => smoothly(() => setShow(s.key))}
               >
                 {s.label}
                 {s.key !== "all" && <span className="up-seg-count">{counts[s.key]}</span>}
@@ -297,7 +298,7 @@ export default function Upcoming({
                 key={r.days}
                 type="button"
                 aria-pressed={rangeDays === r.days}
-                onClick={() => setRangeDays(r.days)}
+                onClick={() => smoothly(() => setRangeDays(r.days))}
               >
                 {r.label}
               </button>

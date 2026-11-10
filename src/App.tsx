@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
+import { smoothly } from "./helpers/motion";
 import { Show, SignIn, useAuth } from "@clerk/react";
 import type { CalendarEvent, Goal, Task } from "./types";
 import { goalProgress, goalStatus, goalSteps } from "./goals";
+import SettingsDialog, { type SettingsTab, type SpaceFields } from "./components/SettingsDialog";
 import Sidebar from "./components/Sidebar";
 import Home from "./pages/Home";
 import Goals from "./pages/Goals";
@@ -84,12 +86,22 @@ const activeLabel: Record<Page, string> = {
 const UNDO_MS = 5000;
 // How often to check for the other partner's changes while the app is showing.
 const REFRESH_MS = 10_000;
+// Page changes animate the main area (see "Page transitions" in index.css).
 function usePage() {
   const read = (): Page =>
     pages[globalThis.location.hash] ?? "home";
   const [page, setPage] = useState(read);
+  const current = useRef(page);
   useEffect(() => {
-    const onHash = () => setPage(read());
+    const onHash = () => {
+      const next = read();
+      if (next === current.current) return;
+      current.current = next;
+      smoothly(() => {
+        flushSync(() => setPage(next));
+        globalThis.scrollTo({ top: 0 }); // so the new page is captured from its top
+      }, "page");
+    };
     globalThis.addEventListener("hashchange", onHash);
     return () => globalThis.removeEventListener("hashchange", onHash);
   }, []);
@@ -338,6 +350,67 @@ export default function App() {
     const id = setTimeout(() => setToast(null), toast.undo ? UNDO_MS : 4000);
     return () => clearTimeout(id);
   }, [toast]);
+
+  // Settings dialog: the open tab, or null when closed. ⌘, / Ctrl+, opens it.
+  const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === ",") {
+        e.preventDefault();
+        setSettingsTab((t) => t ?? "profile");
+      }
+    };
+    globalThis.addEventListener("keydown", onKey);
+    return () => globalThis.removeEventListener("keydown", onKey);
+  }, []);
+
+  // Space name, focus and check-in schedule: show the change at once, put it back if the save fails.
+  const saveSpace = async (fields: SpaceFields) => {
+    const before = { spaceName, focus, checkIn };
+    if (fields.name !== undefined) setSpaceName(fields.name);
+    if (fields.focus !== undefined) setFocus(fields.focus);
+    if (fields.checkInDay || fields.checkInEvery)
+      setCheckIn((c) => ({
+        ...c,
+        day: fields.checkInDay ?? c.day,
+        every: fields.checkInEvery ?? c.every,
+      }));
+    try {
+      await api("/ourspace", { method: "PATCH", body: JSON.stringify({ type: "space", ...fields }) });
+      setToast({ message: "Settings saved", ok: true });
+      return true;
+    } catch (err) {
+      console.error("Saving settings failed:", err);
+      setSpaceName(before.spaceName);
+      setFocus(before.focus);
+      setCheckIn(before.checkIn);
+      setToast({ message: "Couldn't save your settings. Try again.", ok: false });
+      return false;
+    }
+  };
+
+  // Your name as your partner sees it (members list), after Clerk has the new name.
+  const saveName = async (displayName: string) => {
+    try {
+      await api("/ourspace", { method: "PATCH", body: JSON.stringify({ type: "member", displayName }) });
+      setMembers((ms) => ms.map((m) => (m.userId === userId ? { ...m, displayName } : m)));
+      setToast({ message: "Profile saved", ok: true });
+      return true;
+    } catch (err) {
+      console.error("Saving your name failed:", err);
+      setToast({ message: "Couldn't save your name. Try again.", ok: false });
+      return false;
+    }
+  };
+
+  const createInvite = () =>
+    api<{ code: string; expiresAt: string }>("/space", {
+      method: "POST",
+      body: JSON.stringify({ action: "invite" }),
+    }).catch((err) => {
+      console.error("Creating invite failed:", err);
+      return null;
+    });
 
   // Task dialog, opened from Today's "+" with today as the default day.
   const taskDialogRef = useRef<HTMLDialogElement>(null);
@@ -741,7 +814,20 @@ export default function App() {
     return (
       <PeopleContext.Provider value={peopleFrom(members)}>
         <div className="layout">
-          <Sidebar active={activeLabel[page]} />
+          <Sidebar active={activeLabel[page]} onOpenSettings={setSettingsTab} />
+          <SettingsDialog
+            tab={settingsTab}
+            onTab={setSettingsTab}
+            onClose={() => setSettingsTab(null)}
+            spaceName={spaceName}
+            focus={focus}
+            checkIn={checkIn}
+            members={members}
+            myUserId={userId}
+            onSaveSpace={saveSpace}
+            onSaveName={saveName}
+            onInvite={createInvite}
+          />
           <main id="main" className="main">
             {page === "goals" && (
               <Goals

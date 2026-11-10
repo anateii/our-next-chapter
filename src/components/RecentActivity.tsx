@@ -18,6 +18,7 @@ import type { ApiActivity } from "../helpers/activity";
 import { toPerson, type ApiMember } from "../helpers/goals";
 import { usePeople } from "../helpers/people";
 import Avatars from "./Avatars";
+import { smoothly } from "../helpers/motion";
 
 type Who = "all" | Person;
 
@@ -171,7 +172,7 @@ export default function RecentActivity({
               key={f.key}
               type="button"
               aria-pressed={who === f.key}
-              onClick={() => setWho(f.key)}
+              onClick={() => smoothly(() => setWho(f.key))}
             >
               {f.label}
             </button>

@@ -6,6 +6,7 @@ import { goalStatus, type GoalSteps } from "../goals";
 import GoalCard from "../components/GoalCard";
 import NewGoalDialog, { type GoalEdits } from "../components/NewGoalDialog";
 import "./Goals.css";
+import { smoothly } from "../helpers/motion";
 
 type Filter = "All" | GoalStatus;
 const filters: Filter[] = ["All", "In progress", "Not started", "Completed"];
@@ -84,7 +85,7 @@ export default function Goals({
               type="button"
               aria-pressed={f === filter}
               className={f === filter ? "active" : ""}
-              onClick={() => setFilter(f)}
+              onClick={() => smoothly(() => setFilter(f))}
             >
               {f} <span className="seg-count">{count(f)}</span>
             </button>
@@ -96,7 +97,7 @@ export default function Goals({
             className="icon-btn"
             aria-label="Grid view"
             aria-pressed={view === "grid"}
-            onClick={() => setView("grid")}
+            onClick={() => smoothly(() => setView("grid"))}
           >
             <LayoutGrid aria-hidden="true" size={18} />
           </button>
@@ -105,7 +106,7 @@ export default function Goals({
             className="icon-btn"
             aria-label="List view"
             aria-pressed={view === "list"}
-            onClick={() => setView("list")}
+            onClick={() => smoothly(() => setView("list"))}
           >
             <List aria-hidden="true" size={18} />
           </button>
