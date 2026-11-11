@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useClerk, useUser } from "@clerk/react";
 import {
-  ArrowDown,
   ArrowLeft,
-  ArrowUp,
   Check,
   ChevronRight,
   CircleAlert,
@@ -12,7 +10,6 @@ import {
   LoaderCircle,
   Plus,
   Share,
-  X,
 } from "lucide-react";
 import { useApi } from "../helpers/api";
 import {
@@ -21,41 +18,20 @@ import {
   weekdays,
   type CheckInEvery,
 } from "../helpers/checkins";
-import type { MilestoneIcon } from "../helpers/ourspace";
-import EmojiPicker, { MilestoneMark } from "../components/EmojiPicker";
 import "./Onboarding.css";
 
 type Step =
   | "welcome"
   | "create"
-  | "focus"
-  | "roadmap"
   | "checkin"
   | "invite"
   | "join"
   | "done";
-// Starting a space: these steps, in order, with "Step n of 5".
-const createSteps: Step[] = ["create", "focus", "roadmap", "checkin", "invite"];
+// Starting a space: these steps, in order, with "Step n of 3".
+const createSteps: Step[] = ["create", "checkin", "invite"];
 const stepOf = (s: Step) =>
   `Step ${createSteps.indexOf(s) + 1} of ${createSteps.length}`;
 
-type DraftMilestone = {
-  key: string;
-  title: string;
-  icon: MilestoneIcon;
-  emoji?: string;
-  when: string;
-};
-const MAX_MILESTONES = 8;
-// Tap to add, each with an emoji; both can be changed here or later in Our Space.
-// `icon` is the fallback the API keeps alongside the emoji.
-const suggestions: { title: string; icon: MilestoneIcon; emoji: string }[] = [
-  { title: "Move in together", icon: "home", emoji: "🏠" },
-  { title: "New job", icon: "job", emoji: "💼" },
-  { title: "Driving licence", icon: "car", emoji: "🚗" },
-  { title: "A big trip", icon: "plane", emoji: "✈️" },
-  { title: "Adopt a pet", icon: "star", emoji: "🐶" },
-];
 const longDay = new Intl.DateTimeFormat(undefined, {
   weekday: "long",
   day: "numeric",
@@ -130,10 +106,7 @@ export default function Onboarding({
   const [invite, setInvite] = useState<Invite | null>(null);
   const [inviteFailed, setInviteFailed] = useState(false);
   const [copied, setCopied] = useState<"" | "code" | "message">("");
-  // What the new space starts with: focus line, roadmap, check-in schedule.
-  const [focus, setFocus] = useState("");
-  const [roadmap, setRoadmap] = useState<DraftMilestone[]>([]);
-  const [customTitle, setCustomTitle] = useState("");
+  // What the new space starts with: its check-in schedule.
   const [every, setEvery] = useState<CheckInEvery>("weekly");
   const [checkInDay, setCheckInDay] = useState("Sunday");
 
@@ -192,49 +165,7 @@ export default function Onboarding({
       !requireName("Add your name so your partner knows who started the space.")
     )
       return;
-    goTo("focus");
-  };
-
-  const hasMilestone = (title: string) =>
-    roadmap.some((m) => m.title.toLowerCase() === title.trim().toLowerCase());
-  const addMilestone = (
-    title: string,
-    icon: MilestoneIcon = "star",
-    emoji?: string,
-  ) => {
-    const t = title.trim();
-    if (!t || hasMilestone(t) || roadmap.length >= MAX_MILESTONES) return;
-    setRoadmap((r) => [
-      ...r,
-      { key: crypto.randomUUID(), title: t, icon, emoji, when: "" },
-    ]);
-  };
-  const setEmoji = (key: string, emoji?: string) =>
-    setRoadmap((r) => r.map((m) => (m.key === key ? { ...m, emoji } : m)));
-  // The roadmap row whose emoji picker is open (one at a time).
-  const [picking, setPicking] = useState<string | null>(null);
-  const closePicker = (key: string) => {
-    setPicking(null);
-    requestAnimationFrame(() =>
-      document
-        .querySelector<HTMLElement>(`[aria-controls="ob-emoji-${key}"]`)
-        ?.focus(),
-    );
-  };
-  const removeMilestone = (key: string) =>
-    setRoadmap((r) => r.filter((m) => m.key !== key));
-  const moveMilestone = (index: number, by: -1 | 1) =>
-    setRoadmap((r) => {
-      const next = [...r];
-      [next[index], next[index + by]] = [next[index + by], next[index]];
-      return next;
-    });
-  const toggleSuggestion = (sug: (typeof suggestions)[number]) => {
-    const found = roadmap.find(
-      (m) => m.title.toLowerCase() === sug.title.toLowerCase(),
-    );
-    if (found) removeMilestone(found.key);
-    else addMilestone(sug.title, sug.icon, sug.emoji);
+    goTo("checkin");
   };
 
   // Creates the space with everything from the steps before, in one request.
@@ -249,15 +180,8 @@ export default function Onboarding({
           action: "create",
           name: spaceName.trim() || `${trimmedName} & partner`,
           displayName: trimmedName,
-          focus: focus.trim(),
           checkInDay,
           checkInEvery: every,
-          milestones: roadmap.map((m) => ({
-            title: m.title,
-            icon: m.icon,
-            emoji: m.emoji,
-            when: m.when.trim(),
-          })),
         }),
       });
       goTo("invite");
@@ -493,266 +417,11 @@ export default function Onboarding({
         </div>
       </form>
     );
-  } else if (step === "focus") {
-    screen = (
-      <form
-        className="ob-step"
-        onSubmit={(e) => {
-          e.preventDefault();
-          goTo("roadmap");
-        }}
-        noValidate
-      >
-        <div className="ob-top">
-          {backButton("create")}
-          <span className="ob-progress">{stepOf("focus")}</span>
-        </div>
-        <div className="ob-intro">
-          <h1 ref={headingRef} tabIndex={-1}>
-            What are you working toward?
-          </h1>
-          <p>
-            One line for this chapter of your life. It sits at the top of Our
-            Space.
-          </p>
-        </div>
-        <div className="field">
-          <label htmlFor="ob-focus">Our focus</label>
-          <textarea
-            id="ob-focus"
-            className="ob-textarea"
-            rows={3}
-            maxLength={140}
-            value={focus}
-            onChange={(e) => setFocus(e.target.value)}
-            placeholder="A home together. A job that fits. Thailand in 2027."
-            aria-describedby="ob-focus-hint"
-          />
-          <p id="ob-focus-hint" className="field-hint">
-            {140 - focus.length} characters left
-          </p>
-        </div>
-        <div className="ob-actions">
-          <button type="submit" className="btn-primary ob-cta">
-            Continue
-          </button>
-          <button
-            type="button"
-            className="ob-skip"
-            onClick={() => {
-              setFocus("");
-              goTo("roadmap");
-            }}
-          >
-            Skip for now
-          </button>
-        </div>
-      </form>
-    );
-  } else if (step === "roadmap") {
-    const full = roadmap.length >= MAX_MILESTONES;
-    screen = (
-      <form
-        className="ob-step"
-        onSubmit={(e) => {
-          e.preventDefault();
-          goTo("checkin");
-        }}
-        noValidate
-      >
-        <div className="ob-top">
-          {backButton("focus")}
-          <span className="ob-progress">{stepOf("roadmap")}</span>
-        </div>
-        <div className="ob-intro">
-          <h1 ref={headingRef} tabIndex={-1}>
-            Plan your roadmap
-          </h1>
-          <p>The big moments ahead, in the order you hope they'll happen.</p>
-        </div>
-
-        <fieldset className="ob-fieldset">
-          <legend>Suggestions</legend>
-          <div className="ob-chips">
-            {suggestions.map((sug) => {
-              const on = hasMilestone(sug.title);
-              return (
-                <button
-                  key={sug.title}
-                  type="button"
-                  className="ob-chip"
-                  aria-pressed={on}
-                  disabled={!on && full}
-                  onClick={() => toggleSuggestion(sug)}
-                >
-                  {on ? (
-                    <Check aria-hidden="true" size={16} strokeWidth={2.6} />
-                  ) : (
-                    <span className="ob-chip-emoji" aria-hidden="true">
-                      {sug.emoji}
-                    </span>
-                  )}
-                  {sug.title}
-                </button>
-              );
-            })}
-          </div>
-        </fieldset>
-
-        <div className="field">
-          <label htmlFor="ob-milestone">Add your own</label>
-          <div className="ob-add-row">
-            <input
-              id="ob-milestone"
-              type="text"
-              maxLength={60}
-              autoComplete="off"
-              value={customTitle}
-              disabled={full}
-              onChange={(e) => setCustomTitle(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  addMilestone(customTitle);
-                  setCustomTitle("");
-                }
-              }}
-              placeholder="e.g. Learn Thai"
-            />
-            <button
-              type="button"
-              className="btn-secondary"
-              disabled={
-                full || !customTitle.trim() || hasMilestone(customTitle)
-              }
-              onClick={() => {
-                addMilestone(customTitle);
-                setCustomTitle("");
-              }}
-            >
-              Add
-            </button>
-          </div>
-          {full && (
-            <p className="field-hint">
-              That's 8. You can add more later in Our Space.
-            </p>
-          )}
-        </div>
-
-        {roadmap.length > 0 && (
-          <ol className="ob-roadmap" aria-label="Your roadmap">
-            {roadmap.map((m, i) => {
-              const open = picking === m.key;
-              return (
-                <li key={m.key}>
-                  <button
-                    type="button"
-                    className="ob-road-num"
-                    aria-label={`${m.emoji ? `Emoji: ${m.emoji}` : "No emoji yet"}. Choose an emoji for ${m.title}`}
-                    aria-expanded={open}
-                    aria-controls={`ob-emoji-${m.key}`}
-                    onClick={() => setPicking(open ? null : m.key)}
-                  >
-                    <MilestoneMark emoji={m.emoji} icon={m.icon} size={18} />
-                  </button>
-                  <div className="ob-road-body">
-                    <span className="ob-road-title">{m.title}</span>
-                    <label className="sr-only" htmlFor={`ob-when-${m.key}`}>
-                      When, for {m.title}
-                    </label>
-                    <input
-                      id={`ob-when-${m.key}`}
-                      type="text"
-                      maxLength={40}
-                      autoComplete="off"
-                      placeholder="When? (optional)"
-                      value={m.when}
-                      onChange={(e) =>
-                        setRoadmap((r) =>
-                          r.map((x) =>
-                            x.key === m.key
-                              ? { ...x, when: e.target.value }
-                              : x,
-                          ),
-                        )
-                      }
-                    />
-                  </div>
-                  <div className="ob-road-tools">
-                    <button
-                      type="button"
-                      className="icon-btn"
-                      aria-label={`Move ${m.title} earlier`}
-                      disabled={i === 0}
-                      onClick={() => moveMilestone(i, -1)}
-                    >
-                      <ArrowUp aria-hidden="true" size={18} />
-                    </button>
-                    <button
-                      type="button"
-                      className="icon-btn"
-                      aria-label={`Move ${m.title} later`}
-                      disabled={i === roadmap.length - 1}
-                      onClick={() => moveMilestone(i, 1)}
-                    >
-                      <ArrowDown aria-hidden="true" size={18} />
-                    </button>
-                    <button
-                      type="button"
-                      className="icon-btn"
-                      aria-label={`Remove ${m.title}`}
-                      onClick={() => removeMilestone(m.key)}
-                    >
-                      <X aria-hidden="true" size={18} />
-                    </button>
-                  </div>
-                  {open && (
-                    <div id={`ob-emoji-${m.key}`} className="ob-road-picker">
-                      <EmojiPicker
-                        onPick={(emoji) => {
-                          setEmoji(m.key, emoji);
-                          closePicker(m.key);
-                        }}
-                        onClose={() => closePicker(m.key)}
-                        onClear={
-                          m.emoji
-                            ? () => {
-                                setEmoji(m.key, undefined);
-                                closePicker(m.key);
-                              }
-                            : undefined
-                        }
-                      />
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ol>
-        )}
-
-        <div className="ob-actions">
-          <button type="submit" className="btn-primary ob-cta">
-            Continue
-          </button>
-          {roadmap.length === 0 && (
-            <button
-              type="button"
-              className="ob-skip"
-              onClick={() => goTo("checkin")}
-            >
-              Skip for now
-            </button>
-          )}
-        </div>
-      </form>
-    );
   } else if (step === "checkin") {
     screen = (
       <form className="ob-step" onSubmit={submitCreate} noValidate>
         <div className="ob-top">
-          {backButton("roadmap")}
+          {backButton("create")}
           <span className="ob-progress">{stepOf("checkin")}</span>
         </div>
         <div className="ob-intro">
@@ -997,7 +666,7 @@ export default function Onboarding({
           <p>
             {path === "join"
               ? "You now share goals, tasks and the countdown with your partner."
-              : "Your roadmap and check-ins are waiting in Our Space. Your partner can join any time with the code."}
+              : "Your check-ins are waiting in Our Space. Your partner can join any time with the code."}
           </p>
         </div>
         <div className="ob-actions">
@@ -1020,7 +689,9 @@ export default function Onboarding({
   return (
     <div className="onboarding">
       <div className="ob-brand">
-        <img src="/ourly-logo.png" alt="Ourly" />
+        {/* One per theme; CSS shows the one that matches [data-theme] */}
+        <img className="brand-light" src="/ourly-logo-sidebar.png" alt="Ourly" width={404} height={120} />
+        <img className="brand-dark" src="/ourly-logo-dark-sidebar.png" alt="Ourly" width={404} height={120} />
       </div>
       <main id="main" className="ob-card">
         {screen}

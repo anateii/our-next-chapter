@@ -24,7 +24,6 @@ export type SettingsTab = "profile" | "security" | "appearance" | "space" | "par
 
 export interface SpaceFields {
   name?: string;
-  focus?: string;
   checkInDay?: string;
   checkInEvery?: CheckInEvery;
 }
@@ -33,7 +32,7 @@ const tabs: { key: SettingsTab; label: string; icon: typeof Heart; group: "Accou
   { key: "profile", label: "Profile", icon: UserRound, group: "Account" },
   { key: "security", label: "Password & security", icon: ShieldCheck, group: "Account" },
   { key: "appearance", label: "Appearance", icon: Moon, group: "Account" },
-  { key: "space", label: "Name & focus", icon: Heart, group: "Our space" },
+  { key: "space", label: "Space name", icon: Heart, group: "Our space" },
   { key: "partner", label: "Partner", icon: UserPlus, group: "Our space" },
   { key: "checkins", label: "Check-ins", icon: CalendarDays, group: "Our space" },
 ];
@@ -43,7 +42,6 @@ interface Props {
   onTab: (tab: SettingsTab) => void;
   onClose: () => void;
   spaceName: string;
-  focus: string;
   checkIn: CheckInSchedule;
   members: readonly ApiMember[];
   myUserId: string | null | undefined;
@@ -124,7 +122,7 @@ function Pane({ which, ...p }: Readonly<Props & { which: SettingsTab }>) {
     case "appearance":
       return <AppearancePane />;
     case "space":
-      return <SpacePane name={p.spaceName} focus={p.focus} onSave={p.onSaveSpace} />;
+      return <SpacePane name={p.spaceName} onSave={p.onSaveSpace} />;
     case "partner":
       return <PartnerPane members={p.members} myUserId={p.myUserId} onInvite={p.onInvite} />;
     case "checkins":
@@ -338,47 +336,25 @@ function AppearancePane() {
 
 /* Our space */
 
-function SpacePane({
-  name,
-  focus,
-  onSave,
-}: Readonly<{ name: string; focus: string; onSave: Props["onSaveSpace"] }>) {
+function SpacePane({ name, onSave }: Readonly<{ name: string; onSave: Props["onSaveSpace"] }>) {
   const { partner } = usePeople();
   const [n, setN] = useState(name);
-  const [f, setF] = useState(focus);
   const [busy, run] = useSave();
-  const changed = n.trim() !== name || f.trim() !== focus;
+  const changed = n.trim() !== name;
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    const fields: SpaceFields = {};
-    if (n.trim() !== name) fields.name = n.trim();
-    if (f.trim() !== focus) fields.focus = f.trim();
-    void run(() => onSave(fields));
+    void run(() => onSave({ name: n.trim() }));
   };
 
   return (
     <form className="settings-form" onSubmit={submit}>
       <p className="settings-text">
-        {partner ? `You and ${partner} both see these.` : "Your partner sees these once they join."}
+        {partner ? `You and ${partner} both see it.` : "Your partner sees it once they join."}
       </p>
       <div className="field">
         <label htmlFor="set-space">Space name</label>
         <input id="set-space" value={n} maxLength={60} required onChange={(e) => setN(e.target.value)} />
-      </div>
-      <div className="field">
-        <label htmlFor="set-focus">Our focus</label>
-        <input
-          id="set-focus"
-          value={f}
-          maxLength={140}
-          placeholder="What you're working toward together"
-          aria-describedby="set-focus-hint"
-          onChange={(e) => setF(e.target.value)}
-        />
-        <p id="set-focus-hint" className="field-hint">
-          Shown at the top of Our Space. Up to 140 characters.
-        </p>
       </div>
       <SaveButton busy={busy} disabled={!changed || !n.trim()} />
     </form>

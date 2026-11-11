@@ -1,5 +1,4 @@
 import { useRef, useState } from "react";
-import { flushSync } from "react-dom";
 import { Check, Heart, MessagesSquare } from "lucide-react";
 import type { Person } from "../types";
 import type { ApiMember } from "../helpers/goals";
@@ -7,27 +6,16 @@ import type { Partner } from "../helpers/finances";
 import { usePeople } from "../helpers/people";
 import { checkInTitle, nextCheckIn, scheduleLabel, type CheckInSchedule } from "../helpers/checkins";
 import {
-  daysUntil,
   fromApiOurSpace,
   moods,
-  statusSlug,
   type ApiOurSpace,
   type CheckIn,
   type CheckInAnswers,
-  type Milestone,
   type OurSpace,
   type Win,
 } from "../helpers/ourspace";
 import Avatars from "../components/Avatars";
-import GoalMenu from "../components/GoalMenu";
-import { MilestoneMark } from "../components/EmojiPicker";
-import {
-  AddMilestoneDialog,
-  CheckInDialog,
-  RoadmapDialog,
-  type MilestoneFields,
-  type RoadmapRow,
-} from "../components/SpaceDialogs";
+import { CheckInDialog } from "../components/SpaceDialogs";
 import "./Space.css";
 
 type Api = <T>(path: string, init?: RequestInit) => Promise<T>;
@@ -47,10 +35,7 @@ export default function Space({
   notify,
   me: viewer,
   members,
-  focus,
-  onFocus,
   checkIn,
-  countdown,
 }: Readonly<{
   data: OurSpace;
   setData: React.Dispatch<React.SetStateAction<OurSpace>>;
@@ -58,10 +43,7 @@ export default function Space({
   notify: Notify;
   me: Person;
   members: readonly ApiMember[];
-  focus: string;
-  onFocus: (focus: string) => void;
   checkIn: CheckInSchedule;
-  countdown?: { title: string; targetDate: string }; // the featured goal, if it has a date
 }>) {
   const { name, partner } = usePeople();
   const me: Partner = viewer === "partner" ? "partner" : "owner";
@@ -81,66 +63,11 @@ export default function Space({
     api<T>(`/ourspace${query}`, { method, body: body === undefined ? undefined : JSON.stringify(body) });
   const patch = (type: string, id: string, fields: Record<string, unknown>, what: string) =>
     write("PATCH", { type, id, ...fields }).then(reload, failed(what));
-  const patchSpace = (fields: Record<string, unknown>, what: string) =>
-    write("PATCH", { type: "space", ...fields }).catch(failed(what));
 
-  const { milestones, wins, checkins } = data;
+  const { wins, checkins } = data;
 
   /* Dialogs */
-  const addMilestoneRef = useRef<HTMLDialogElement>(null);
-  const roadmapRef = useRef<HTMLDialogElement>(null);
-  // A fresh copy of the roadmap each time Edit roadmap opens (see RoadmapDialog).
-  const [roadmapOpenKey, setRoadmapOpenKey] = useState(0);
-  const openRoadmap = () => {
-    flushSync(() => setRoadmapOpenKey((k) => k + 1));
-    roadmapRef.current?.showModal();
-  };
   const checkInRef = useRef<HTMLDialogElement>(null);
-
-  /* Focus */
-  const [editingFocus, setEditingFocus] = useState(false);
-  const saveFocus = (value: string) => {
-    setEditingFocus(false);
-    const before = focus;
-    const next = value.trim();
-    if (next === before) return;
-    onFocus(next);
-    void patchSpace({ focus: next }, "Save your focus").then((ok) => ok === undefined && onFocus(before));
-    notify({
-      message: "Focus updated",
-      ok: true,
-      undo: () => {
-        onFocus(before);
-        void patchSpace({ focus: before }, "Undo");
-      },
-    });
-  };
-
-  /* Roadmap */
-  const setMilestones = (fn: (ms: Milestone[]) => Milestone[]) =>
-    setData((d) => ({ ...d, milestones: fn(d.milestones) }));
-  const addMilestone = (f: MilestoneFields) => {
-    setMilestones((ms) => [...ms, { id: tempId(), ...f }]);
-    write("POST", { type: "milestone", ...f, when: f.when ?? null }).then(reload, failed("Add the milestone"));
-    notify({ message: `Added “${f.title}” to the roadmap`, ok: true });
-  };
-  // Edit roadmap: names, icons, timing and order in one go; left-out ones are deleted.
-  // Edit roadmap: names, emojis, statuses, timing and order in one go, plus
-  // the ones deleted there. Milestones added meanwhile are kept, after these.
-  const saveRoadmap = (rows: RoadmapRow[], deleted: string[]) => {
-    setMilestones((ms) => {
-      const edited = rows.flatMap((r) => {
-        const m = ms.find((x) => x.id === r.id);
-        return m
-          ? [{ ...m, title: r.title, icon: r.icon, emoji: r.emoji, status: r.status, when: r.when || undefined }]
-          : [];
-      });
-      const others = ms.filter((m) => !rows.some((r) => r.id === m.id) && !deleted.includes(m.id));
-      return [...edited, ...others];
-    });
-    write("PATCH", { type: "roadmap", milestones: rows, deleted }).then(reload, failed("Save the roadmap"));
-    notify({ message: "Roadmap saved", ok: true });
-  };
 
   /* Check-ins */
   const saveCheckIn = (answers: CheckInAnswers) => {
@@ -212,10 +139,6 @@ export default function Space({
     void patch("win", w.id, { cheer: on }, "Save your cheer");
   };
 
-  /* Hero figures */
-  const doneCount = milestones.filter((m) => m.status === "Done").length;
-  const daysLeft = countdown ? daysUntil(countdown.targetDate) : -1;
-
   return (
     <>
       <header className="page-head">
@@ -223,109 +146,9 @@ export default function Space({
           <h1 id="page-title" tabIndex={-1}>
             Our Space
           </h1>
-          <p>Who we are, and where we're headed.</p>
+          <p>Check in together and celebrate the wins.</p>
         </div>
       </header>
-
-      <section className="sp-focus" aria-labelledby="focus-label">
-        <div className="sp-focus-main">
-          <div className="sp-focus-top">
-            <p id="focus-label" className="sp-kicker">
-              Our current focus
-            </p>
-            {!editingFocus && (
-              <GoalMenu
-                label="More options for our focus"
-                actions={[
-                  { label: focus ? "Edit our focus" : "Write our focus", onSelect: () => setEditingFocus(true) },
-                  ...(focus ? [{ label: "Clear focus", onSelect: () => saveFocus("") }] : []),
-                ]}
-              />
-            )}
-          </div>
-          {editingFocus ? (
-            <FocusEditor initial={focus} onSave={saveFocus} onCancel={() => setEditingFocus(false)} />
-          ) : (
-            <h2 className={focus ? "" : "sp-focus-empty"}>
-              {focus || "What are you working toward together right now?"}
-            </h2>
-          )}
-        </div>
-        <dl className="sp-focus-stats">
-          {daysLeft > 0 && countdown && (
-            <div>
-              <dt>days to {countdown.title}</dt>
-              <dd>{daysLeft}</dd>
-            </div>
-          )}
-          <div>
-            <dt>milestones done</dt>
-            <dd>
-              {doneCount}/{milestones.length}
-            </dd>
-          </div>
-        </dl>
-      </section>
-
-      <section className="card sp-panel" aria-labelledby="road-title">
-        <div className="sp-panel-head">
-          <div className="sp-title-group">
-            <h2 id="road-title">Our roadmap</h2>
-            <span className="sp-sub">The big moments, in order</span>
-          </div>
-          <GoalMenu
-            label="More options for the roadmap"
-            actions={[
-              { label: "Add milestone", onSelect: () => addMilestoneRef.current?.showModal() },
-              {
-                label: "Edit roadmap",
-                onSelect: openRoadmap,
-                // Wait until new milestones are saved and have their real ids.
-                disabled: milestones.length === 0 || milestones.some((m) => isTemp(m.id)),
-              },
-            ]}
-          />
-        </div>
-        {milestones.length ? (
-          <ol className="sp-road">
-            {milestones.map((m) => {
-              return (
-                <li key={m.id} className={m.status === "Done" ? "sp-stop done" : "sp-stop"}>
-                  <span className="sp-stop-dot" aria-hidden="true">
-                    {m.status === "Done" && !m.emoji ? (
-                      <Check size={20} strokeWidth={2.6} />
-                    ) : (
-                      <MilestoneMark emoji={m.emoji} icon={m.icon} size={20} />
-                    )}
-                    {m.status === "Done" && m.emoji && (
-                      <span className="sp-done-tick">
-                        <Check size={11} strokeWidth={3.2} />
-                      </span>
-                    )}
-                  </span>
-                  <div className="sp-stop-body">
-                    <h3>{m.title}</h3>
-                    <div className="sp-stop-meta">
-                      <span className={`sp-badge status-${statusSlug(m.status)}`}>
-                        <span className="sr-only">Status: </span>
-                        {m.status}
-                      </span>
-                      {m.when && <span className="sp-when">{m.when}</span>}
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        ) : (
-          <div className="empty sp-road-empty">
-            <p>Add the big moments ahead, like moving in together or a new job.</p>
-            <button type="button" className="btn-secondary" onClick={() => addMilestoneRef.current?.showModal()}>
-              Add a milestone
-            </button>
-          </div>
-        )}
-      </section>
 
       <div className="sp-two">
         <section className="card sp-panel" aria-labelledby="ci-title">
@@ -424,8 +247,6 @@ export default function Space({
         </section>
       </div>
 
-      <AddMilestoneDialog ref={addMilestoneRef} onAdd={addMilestone} />
-      <RoadmapDialog ref={roadmapRef} milestones={milestones} openKey={roadmapOpenKey} onSave={saveRoadmap} />
       <CheckInDialog ref={checkInRef} title={checkInTitle(checkIn)} onSave={saveCheckIn} />
     </>
   );
@@ -473,55 +294,6 @@ function InlineAdd({
       <button type="submit" className={primary ? "btn-primary" : "btn-secondary"}>
         {button}
       </button>
-    </form>
-  );
-}
-
-function FocusEditor({
-  initial,
-  onSave,
-  onCancel,
-}: Readonly<{ initial: string; onSave: (v: string) => void; onCancel: () => void }>) {
-  const [value, setValue] = useState(initial);
-  return (
-    <form
-      className="sp-focus-form"
-      onSubmit={(e) => {
-        e.preventDefault();
-        onSave(value);
-      }}
-    >
-      <label className="sr-only" htmlFor="focus-input">
-        Our focus
-      </label>
-      <textarea
-        id="focus-input"
-        autoFocus // opened by the Edit button
-        maxLength={140}
-        rows={2}
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onFocus={(e) => e.currentTarget.setSelectionRange(value.length, value.length)}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") onCancel();
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            onSave(value);
-          }
-        }}
-        placeholder="e.g. A home together. A job that fits. Thailand in 2027."
-      />
-      <div className="sp-focus-actions">
-        <button type="submit" className="sp-on-hero solid">
-          Save
-        </button>
-        <button type="button" className="sp-on-hero" onClick={onCancel}>
-          Cancel
-        </button>
-        <span className="sp-count" aria-live="polite">
-          {140 - value.length} left
-        </span>
-      </div>
     </form>
   );
 }

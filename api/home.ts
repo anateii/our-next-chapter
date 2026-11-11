@@ -86,7 +86,6 @@ export async function GET(req: Request) {
     space: {
       id: space.id,
       name: space.name,
-      focus: space.focus,
       checkInDay: space.checkInDay,
       checkInEvery: space.checkInEvery,
       createdAt: space.createdAt, // every-other-week check-ins count from this week

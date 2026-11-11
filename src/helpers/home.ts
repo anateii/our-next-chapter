@@ -6,7 +6,6 @@ export interface ApiHome {
   space: {
     id: string;
     name: string;
-    focus: string | null;
     checkInDay: string;
     checkInEvery: string; // "weekly" | "biweekly" | "monthly"
     createdAt: string;

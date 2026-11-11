@@ -378,15 +378,15 @@
 /* Logo at sidebar size; the width follows its 404×120 file. Dark text for
    the light theme, light text for the dark theme. */
 .brand img {
-  display: block;
   height: 30px;
   width: auto;
 }
-.brand .brand-dark,
-[data-theme="dark"] .brand .brand-light {
+/* Logo pairs (sidebar, onboarding): show the one for the current theme */
+.brand-dark,
+[data-theme="dark"] .brand-light {
   display: none;
 }
-[data-theme="dark"] .brand .brand-dark {
+[data-theme="dark"] .brand-dark {
   display: block;
 }
 .sidebar nav {

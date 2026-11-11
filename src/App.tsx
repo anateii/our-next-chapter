@@ -144,9 +144,8 @@ export default function App() {
   const [checkIn, setCheckIn] = useState<CheckInSchedule>(defaultSchedule);
   // Savings funds, shared expenses, settle-ups and the budget.
   const [finances, setFinances] = useState<FinanceData>(emptyFinances);
-  // Our Space: roadmap, wins and check-ins, plus the focus line.
+  // Our Space: wins and check-ins.
   const [ourSpace, setOurSpace] = useState<OurSpace>(emptyOurSpace);
-  const [focus, setFocus] = useState("");
   const [members, setMembers] = useState<ApiMember[]>([]);
   const [spaceName, setSpaceName] = useState("");
   const [dataLoaded, setDataLoaded] = useState(false);
@@ -272,7 +271,6 @@ export default function App() {
       since: new Date(home.space.createdAt),
     });
     setFinances(fromApiFinances(money, home.members));
-    setFocus(home.space.focus ?? "");
     setOurSpace(fromApiOurSpace(space, home.members));
   };
 
@@ -364,11 +362,10 @@ export default function App() {
     return () => globalThis.removeEventListener("keydown", onKey);
   }, []);
 
-  // Space name, focus and check-in schedule: show the change at once, put it back if the save fails.
+  // Space name and check-in schedule: show the change at once, put it back if the save fails.
   const saveSpace = async (fields: SpaceFields) => {
-    const before = { spaceName, focus, checkIn };
+    const before = { spaceName, checkIn };
     if (fields.name !== undefined) setSpaceName(fields.name);
-    if (fields.focus !== undefined) setFocus(fields.focus);
     if (fields.checkInDay || fields.checkInEvery)
       setCheckIn((c) => ({
         ...c,
@@ -382,7 +379,6 @@ export default function App() {
     } catch (err) {
       console.error("Saving settings failed:", err);
       setSpaceName(before.spaceName);
-      setFocus(before.focus);
       setCheckIn(before.checkIn);
       setToast({ message: "Couldn't save your settings. Try again.", ok: false });
       return false;
@@ -820,7 +816,6 @@ export default function App() {
             onTab={setSettingsTab}
             onClose={() => setSettingsTab(null)}
             spaceName={spaceName}
-            focus={focus}
             checkIn={checkIn}
             members={members}
             myUserId={userId}
@@ -872,14 +867,7 @@ export default function App() {
                 notify={setToast}
                 me={me}
                 members={members}
-                focus={focus}
-                onFocus={setFocus}
                 checkIn={checkIn}
-                countdown={
-                  featured?.targetDate
-                    ? { title: featured.title, targetDate: featured.targetDate }
-                    : undefined
-                }
               />
             )}
             {page === "calendar" && (
