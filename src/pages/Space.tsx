@@ -4,7 +4,12 @@ import type { Person } from "../types";
 import type { ApiMember } from "../helpers/goals";
 import type { Partner } from "../helpers/finances";
 import { usePeople } from "../helpers/people";
-import { checkInTitle, nextCheckIn, scheduleLabel, type CheckInSchedule } from "../helpers/checkins";
+import {
+  checkInTitle,
+  nextCheckIn,
+  scheduleLabel,
+  type CheckInSchedule,
+} from "../helpers/checkins";
 import {
   fromApiOurSpace,
   moods,
@@ -23,10 +28,43 @@ type Notify = (t: { message: string; ok: boolean; undo?: () => void }) => void;
 
 const HISTORY_SHOWN = 3;
 
-const shortDate = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short" });
-const longDay = new Intl.DateTimeFormat(undefined, { weekday: "long", day: "numeric", month: "long" });
+const shortDate = new Intl.DateTimeFormat(undefined, {
+  day: "numeric",
+  month: "short",
+});
+const longDay = new Intl.DateTimeFormat(undefined, {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+});
 const isTemp = (id: string) => id.startsWith("new-");
 const tempId = () => `new-${crypto.randomUUID()}`;
+
+const getNextCheckInState = (
+  schedule: CheckInSchedule,
+  checkins: readonly CheckIn[],
+) => {
+  const next = nextCheckIn(
+    schedule,
+    checkins.map((c) => c.at),
+  );
+
+  if (!next) {
+    return {
+      next: { day: new Date(), inDays: 0, done: false },
+      nextTitle: "Your next check-in",
+      nextSummary: "Four short questions, about 10 minutes, together.",
+    };
+  }
+
+  return {
+    next,
+    nextTitle: next.done ? "Check-in complete" : "Your next check-in",
+    nextSummary: next.done
+      ? `Next one: ${longDay.format(next.day)}`
+      : "Four short questions, about 10 minutes, together.",
+  };
+};
 
 export default function Space({
   data,
@@ -56,13 +94,23 @@ export default function Space({
       .catch((err) => console.warn("Reloading Our Space failed:", err));
   const failed = (what: string) => (err: unknown) => {
     console.error(`${what} failed:`, err);
-    notify({ message: `Couldn't ${what.toLowerCase()}. Try again.`, ok: false });
+    notify({
+      message: `Couldn't ${what.toLowerCase()}. Try again.`,
+      ok: false,
+    });
     void reload();
   };
   const write = <T,>(method: string, body?: unknown, query = "") =>
-    api<T>(`/ourspace${query}`, { method, body: body === undefined ? undefined : JSON.stringify(body) });
-  const patch = (type: string, id: string, fields: Record<string, unknown>, what: string) =>
-    write("PATCH", { type, id, ...fields }).then(reload, failed(what));
+    api<T>(`/ourspace${query}`, {
+      method,
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  const patch = (
+    type: string,
+    id: string,
+    fields: Record<string, unknown>,
+    what: string,
+  ) => write("PATCH", { type, id, ...fields }).then(reload, failed(what));
 
   const { wins, checkins } = data;
 
@@ -71,9 +119,16 @@ export default function Space({
 
   /* Check-ins */
   const saveCheckIn = (answers: CheckInAnswers) => {
-    const temp: CheckIn = { id: tempId(), answers, at: new Date().toISOString() };
+    const temp: CheckIn = {
+      id: tempId(),
+      answers,
+      at: new Date().toISOString(),
+    };
     setData((s) => ({ ...s, checkins: [temp, ...s.checkins] }));
-    const saved = write<{ checkin: { id: string } }>("POST", { type: "checkin", answers })
+    const saved = write<{ checkin: { id: string } }>("POST", {
+      type: "checkin",
+      answers,
+    })
       .then((res) => {
         void reload();
         return res.checkin.id;
@@ -85,28 +140,41 @@ export default function Space({
     notify({
       message: "Check-in saved. See you next time.",
       ok: true,
-      undo: () => {
-        setData((s) => ({ ...s, checkins: s.checkins.filter((c) => c.id !== temp.id) }));
-        void saved.then((id) => {
-          if (id) write("DELETE", undefined, `?type=checkin&id=${encodeURIComponent(id)}`).then(reload, failed("Undo"));
-        });
+      undo: async () => {
+        setData((s) => ({
+          ...s,
+          checkins: s.checkins.filter((c) => c.id !== temp.id),
+        }));
+        try {
+          const id = await saved;
+          if (!id) return;
+          await write(
+            "DELETE",
+            undefined,
+            `?type=checkin&id=${encodeURIComponent(id)}`,
+          );
+          await reload();
+        } catch (err) {
+          failed("Undo")(err);
+        }
       },
     });
   };
-  const next = nextCheckIn(
+  const { next, nextTitle, nextSummary } = getNextCheckInState(
     checkIn,
-    checkins.map((c) => c.at),
-  ) ?? { day: new Date(), inDays: 0, done: false };
-  const whenLabel = (() => {
-    if (next.inDays === 0) return "Today";
-    if (next.inDays === 1) return "Tomorrow";
-    return longDay.format(next.day);
-  })();
+    checkins,
+  );
   const [allHistory, setAllHistory] = useState(false);
 
   /* Wins */
   const addWin = (text: string) => {
-    const temp: Win = { id: tempId(), text, who: me, cheers: [], at: new Date().toISOString() };
+    const temp: Win = {
+      id: tempId(),
+      text,
+      who: me,
+      cheers: [],
+      at: new Date().toISOString(),
+    };
     setData((s) => ({ ...s, wins: [temp, ...s.wins] }));
     const saved = write<{ win: { id: string } }>("POST", { type: "win", text })
       .then((res) => {
@@ -118,13 +186,27 @@ export default function Space({
         return null;
       });
     notify({
-      message: partner ? `Win added. ${name(other)} will see it in Recent activity.` : "Win added",
+      message: partner
+        ? `Win added. ${name(other)} will see it in Recent activity.`
+        : "Win added",
       ok: true,
-      undo: () => {
-        setData((s) => ({ ...s, wins: s.wins.filter((w) => w.id !== temp.id) }));
-        void saved.then((id) => {
-          if (id) write("DELETE", undefined, `?type=win&id=${encodeURIComponent(id)}`).then(reload, failed("Undo"));
-        });
+      undo: async () => {
+        setData((s) => ({
+          ...s,
+          wins: s.wins.filter((w) => w.id !== temp.id),
+        }));
+        try {
+          const id = await saved;
+          if (!id) return;
+          await write(
+            "DELETE",
+            undefined,
+            `?type=win&id=${encodeURIComponent(id)}`,
+          );
+          await reload();
+        } catch (err) {
+          failed("Undo")(err);
+        }
       },
     });
   };
@@ -133,7 +215,12 @@ export default function Space({
     setData((s) => ({
       ...s,
       wins: s.wins.map((x) =>
-        x.id === w.id ? { ...x, cheers: on ? [...x.cheers, me] : x.cheers.filter((c) => c !== me) } : x,
+        x.id === w.id
+          ? {
+              ...x,
+              cheers: on ? [...x.cheers, me] : x.cheers.filter((c) => c !== me),
+            }
+          : x,
       ),
     }));
     void patch("win", w.id, { cheer: on }, "Save your cheer");
@@ -158,15 +245,15 @@ export default function Space({
           </div>
           <div className={`sp-next${next.done ? " done" : ""}`}>
             <span className="sp-next-icon" aria-hidden="true">
-              {next.done ? <Check size={22} strokeWidth={2.4} /> : <MessagesSquare size={22} />}
+              {next.done ? (
+                <Check size={22} strokeWidth={2.4} />
+              ) : (
+                <MessagesSquare size={22} />
+              )}
             </span>
             <div>
-              <b>{next.done ? (checkIn.every === "weekly" ? "Done for this week" : "Done for now") : whenLabel}</b>
-              <span>
-                {next.done
-                  ? `Next one: ${longDay.format(next.day)}`
-                  : "Four short questions, about 10 minutes, together."}
-              </span>
+              <b>{nextTitle}</b>
+              <span>{nextSummary}</span>
             </div>
             <button
               type="button"
@@ -177,13 +264,18 @@ export default function Space({
             </button>
           </div>
           {checkins.length === 0 ? (
-            <p className="empty">Your check-ins will show here, so you can look back on how the weeks went.</p>
+            <p className="empty">
+              Your check-ins will show here, so you can look back on how the
+              weeks went.
+            </p>
           ) : (
             <>
               <ul className="sp-history">
-                {checkins.slice(0, allHistory ? undefined : HISTORY_SHOWN).map((c) => (
-                  <CheckInEntry key={c.id} c={c} />
-                ))}
+                {checkins
+                  .slice(0, allHistory ? undefined : HISTORY_SHOWN)
+                  .map((c) => (
+                    <CheckInEntry key={c.id} c={c} />
+                  ))}
               </ul>
               {checkins.length > HISTORY_SHOWN && (
                 <button
@@ -214,7 +306,10 @@ export default function Space({
             onAdd={addWin}
           />
           {wins.length === 0 ? (
-            <p className="empty">Passed a test? Booked the flights? Write it down and cheer each other on.</p>
+            <p className="empty">
+              Passed a test? Booked the flights? Write it down and cheer each
+              other on.
+            </p>
           ) : (
             <ul className="sp-wins">
               {wins.map((w) => {
@@ -235,7 +330,11 @@ export default function Space({
                         onClick={() => cheer(w)}
                         aria-label={`${mine ? "Remove your cheer for" : "Cheer for"} ${w.text}, ${w.cheers.length} so far`}
                       >
-                        <Heart aria-hidden="true" size={14} fill={mine ? "currentColor" : "none"} />
+                        <Heart
+                          aria-hidden="true"
+                          size={14}
+                          fill={mine ? "currentColor" : "none"}
+                        />
                         {w.cheers.length}
                       </button>
                     </div>
@@ -247,7 +346,11 @@ export default function Space({
         </section>
       </div>
 
-      <CheckInDialog ref={checkInRef} title={checkInTitle(checkIn)} onSave={saveCheckIn} />
+      <CheckInDialog
+        ref={checkInRef}
+        title={checkInTitle(checkIn)}
+        onSave={saveCheckIn}
+      />
     </>
   );
 }
@@ -277,7 +380,9 @@ function InlineAdd({
       className="sp-inline-add"
       onSubmit={(e) => {
         e.preventDefault();
-        const input = e.currentTarget.elements.namedItem(id) as HTMLInputElement;
+        const input = e.currentTarget.elements.namedItem(
+          id,
+        ) as HTMLInputElement;
         const text = input.value.trim();
         if (!text) {
           input.focus();
@@ -290,8 +395,18 @@ function InlineAdd({
       <label className="sr-only" htmlFor={id}>
         {label}
       </label>
-      <input id={id} name={id} type="text" maxLength={maxLength} autoComplete="off" placeholder={placeholder} />
-      <button type="submit" className={primary ? "btn-primary" : "btn-secondary"}>
+      <input
+        id={id}
+        name={id}
+        type="text"
+        maxLength={maxLength}
+        autoComplete="off"
+        placeholder={placeholder}
+      />
+      <button
+        type="submit"
+        className={primary ? "btn-primary" : "btn-secondary"}
+      >
         {button}
       </button>
     </form>
@@ -309,7 +424,9 @@ function CheckInEntry({ c }: Readonly<{ c: CheckIn }>) {
   return (
     <li className="sp-entry">
       <div className="sp-entry-head">
-        <span className="sp-entry-date">{shortDate.format(new Date(c.at))}</span>
+        <span className="sp-entry-date">
+          {shortDate.format(new Date(c.at))}
+        </span>
         <span className="sp-moods-shown">
           {who.map((p) => {
             const mood = c.answers[p]!.mood;

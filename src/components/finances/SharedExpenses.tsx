@@ -22,7 +22,11 @@ import {
   type Settlement,
 } from "../../helpers/finances";
 
-const dayName = new Intl.DateTimeFormat(undefined, { weekday: "short", day: "numeric", month: "short" });
+const dayName = new Intl.DateTimeFormat(undefined, {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+});
 // "YYYY-MM-DD" -> "Today", "Yesterday" or "Tue, 4 Nov"
 const relDay = (day: string) => {
   const [y, m, d] = day.split("-").map(Number);
@@ -35,7 +39,9 @@ const relDay = (day: string) => {
   return dayName.format(date);
 };
 
-type Row = { kind: "expense"; day: string; x: Expense } | { kind: "settle"; day: string; s: Settlement };
+type Row =
+  | { kind: "expense"; day: string; x: Expense }
+  | { kind: "settle"; day: string; s: Settlement };
 
 // The month's shared expenses and settle-ups, newest first, grouped by day,
 // filtered by who paid and by category.
@@ -62,19 +68,25 @@ export default function SharedExpenses({
     ...monthExpenses
       .filter(
         (x) =>
-          (paidFilter === "all" || x.paidBy === paidFilter) && (catFilter === "all" || x.category === catFilter),
+          (paidFilter === "all" || x.paidBy === paidFilter) &&
+          (catFilter === "all" || x.category === catFilter),
       )
       .map((x) => ({ kind: "expense" as const, day: x.day, x })),
     // Settle-ups have no category, so a category filter hides them.
     ...(catFilter === "all"
       ? data.settlements
           .map((s) => ({ s, day: s.at.slice(0, 10) }))
-          .filter(({ s, day }) => monthOf(day) === month && (paidFilter === "all" || s.from === paidFilter))
+          .filter(
+            ({ s, day }) =>
+              monthOf(day) === month &&
+              (paidFilter === "all" || s.from === paidFilter),
+          )
           .map(({ s, day }) => ({ kind: "settle" as const, day, s }))
       : []),
   ].sort((a, b) => b.day.localeCompare(a.day));
   const groups = new Map<string, Row[]>();
-  for (const row of rows) groups.set(row.day, [...(groups.get(row.day) ?? []), row]);
+  for (const row of rows)
+    groups.set(row.day, [...(groups.get(row.day) ?? []), row]);
 
   const paidOptions: [string, string][] = [
     ["all", "Everyone"],
@@ -83,13 +95,16 @@ export default function SharedExpenses({
   ];
 
   return (
-    <section className="card fin-panel fin-expenses" aria-labelledby="exp-title">
+    <section
+      className="card fin-panel fin-expenses"
+      aria-labelledby="exp-title"
+    >
       <div className="fin-panel-head">
         <div className="fin-title">
           <h2 id="exp-title">Shared Expenses</h2>
           <InfoTip label="Shared Expenses">
-            Everything you've paid for together this month: who paid, how it's split, and your share.
-            Tap an expense to edit or delete it.
+            Everything you've paid for together this month: who paid, how it's
+            split, and your share. Tap an expense to edit or delete it.
           </InfoTip>
         </div>
         <span className="fin-sub">
@@ -98,18 +113,20 @@ export default function SharedExpenses({
       </div>
       {/* One quiet row: who paid as small text pills, the category as a plain-text dropdown */}
       <div className="fin-filters">
-        <div className="exp-pills" role="group" aria-label="Paid by">
+        <fieldset className="exp-pills" aria-label="Paid by">
           {paidOptions.map(([k, label]) => (
             <button
               key={k}
               type="button"
               aria-pressed={paidFilter === k}
-              onClick={() => smoothly(() => setPaidFilter(k as "all" | Partner))}
+              onClick={() =>
+                smoothly(() => setPaidFilter(k as "all" | Partner))
+              }
             >
               {label}
             </button>
           ))}
-        </div>
+        </fieldset>
         <label className="sr-only" htmlFor="exp-category">
           Category
         </label>
@@ -130,24 +147,35 @@ export default function SharedExpenses({
 
       {rows.length === 0 ? (
         <div className="empty">
-          {monthExpenses.length ? "Nothing matches these filters." : `No shared expenses in ${monthTitle(month)}.`}
+          {monthExpenses.length
+            ? "Nothing matches these filters."
+            : `No shared expenses in ${monthTitle(month)}.`}
         </div>
       ) : (
         // As tall as the budget card beside it; days that don't fit scroll inside.
         <ScrollFade className="exp-days" fill label="Shared Expenses">
           {[...groups].map(([day, list]) => (
-          <div key={day}>
-            <h3 className="fin-day">{relDay(day)}</h3>
-            <ul className="exps">
-              {list.map((row) =>
-                row.kind === "settle" ? (
-                  <SettleRow key={row.s.id} settlement={row.s} onRemove={() => onRemoveSettlement(row.s.id)} />
-                ) : (
-                  <ExpenseRow key={row.x.id} expense={row.x} me={me} onOpen={onOpen} />
-                ),
-              )}
-            </ul>
-          </div>
+            <div key={day}>
+              <h3 className="fin-day">{relDay(day)}</h3>
+              <ul className="exps">
+                {list.map((row) =>
+                  row.kind === "settle" ? (
+                    <SettleRow
+                      key={row.s.id}
+                      settlement={row.s}
+                      onRemove={() => onRemoveSettlement(row.s.id)}
+                    />
+                  ) : (
+                    <ExpenseRow
+                      key={row.x.id}
+                      expense={row.x}
+                      me={me}
+                      onOpen={onOpen}
+                    />
+                  ),
+                )}
+              </ul>
+            </div>
           ))}
         </ScrollFade>
       )}
@@ -157,7 +185,10 @@ export default function SharedExpenses({
 
 // A settle-up in the list: who paid whom back.
 // Its menu removes a settle-up pressed by mistake (not while it's still saving).
-function SettleRow({ settlement: s, onRemove }: Readonly<{ settlement: Settlement; onRemove: () => void }>) {
+function SettleRow({
+  settlement: s,
+  onRemove,
+}: Readonly<{ settlement: Settlement; onRemove: () => void }>) {
   const { name } = usePeople();
   return (
     <li className="exp settle">
@@ -175,7 +206,13 @@ function SettleRow({ settlement: s, onRemove }: Readonly<{ settlement: Settlemen
       </span>
       <GoalMenu
         label={`More options for the settle-up of ${formatMoney(s.cents)}`}
-        actions={[{ label: "Remove settle-up", onSelect: onRemove, disabled: s.id.startsWith("new-") }]}
+        actions={[
+          {
+            label: "Remove settle-up",
+            onSelect: onRemove,
+            disabled: s.id.startsWith("new-"),
+          },
+        ]}
       />
     </li>
   );
@@ -191,7 +228,8 @@ function ExpenseRow({
   const c = categoryOf(x.category);
   const Icon = c.icon;
   let split = "split equally";
-  if (x.split === "income") split = `by income (${x.ownerShare}/${100 - x.ownerShare})`;
+  if (x.split === "income")
+    split = `by income (${x.ownerShare}/${100 - x.ownerShare})`;
   else if (x.split !== "equal") split = `all for ${name(x.split)}`;
   return (
     <li className="exp">

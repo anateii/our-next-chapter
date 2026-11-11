@@ -29,7 +29,7 @@ export const categories = [
 ] as const;
 export type Category = (typeof categories)[number]["key"];
 export const categoryOf = (key: string) =>
-  categories.find((c) => c.key === key) ?? categories[categories.length - 1];
+  categories.find((c) => c.key === key) ?? categories.at(-1)!;
 
 export type Split = "equal" | "income" | "owner" | "partner";
 
@@ -165,8 +165,8 @@ export const parseCents = (text: string) => {
   const cleaned = text.replace(/[^\d.,]/g, "");
   // A comma followed by 1-2 digits at the end is a decimal comma.
   const normal = /,\d{1,2}$/.test(cleaned)
-    ? cleaned.replace(/\./g, "").replace(",", ".")
-    : cleaned.replace(/,/g, "");
+    ? cleaned.replaceAll(".", "").replace(",", ".")
+    : cleaned.replaceAll(",", "");
   const n = Number(normal);
   return normal && Number.isFinite(n) && n > 0 ? Math.round(n * 100) : null;
 };

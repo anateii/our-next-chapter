@@ -44,7 +44,8 @@ export default function SharedBudget({
           </InfoTip>
         </div>
         <div className="fin-head-actions">
-          <div className="view-toggle" role="group" aria-label="Budget view">
+          <fieldset className="view-toggle" aria-label="Budget view">
+            <legend className="sr-only">Budget view</legend>
             <button
               type="button"
               className="icon-btn"
@@ -63,7 +64,7 @@ export default function SharedBudget({
             >
               <ChartPie aria-hidden="true" size={18} />
             </button>
-          </div>
+          </fieldset>
           <button type="button" className="btn-ghost" onClick={onEdit}>
             <SlidersHorizontal aria-hidden="true" size={16} /> Edit
           </button>
