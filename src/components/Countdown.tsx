@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { CalendarDays } from "lucide-react";
 import type { Adventure } from "../types";
-import { parseDay } from "../goals";
+import { parseDay } from "../helpers/goals";
 
 const dateFormat = new Intl.DateTimeFormat(undefined, {
   weekday: "short",

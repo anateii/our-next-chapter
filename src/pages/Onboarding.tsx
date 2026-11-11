@@ -12,6 +12,7 @@ import {
   Share,
 } from "lucide-react";
 import { useApi } from "../helpers/api";
+import { FieldError } from "../components/dialogParts";
 import {
   frequencies,
   nextCheckIn,
@@ -56,17 +57,6 @@ const tidyCode = (v: string) =>
     .replace(/[^A-Z0-9]/g, "")
     .slice(0, CODE_LENGTH);
 
-function FieldError({
-  id,
-  children,
-}: Readonly<{ id: string; children: string }>) {
-  return (
-    <p id={id} className="field-error" role="alert">
-      <CircleAlert aria-hidden="true" size={16} />
-      {children}
-    </p>
-  );
-}
 
 // Preview mode (dev only, see App.tsx) answers requests locally so every
 // screen can be clicked through without creating anything.

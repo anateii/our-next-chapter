@@ -19,7 +19,7 @@ import {
   type EventEdits,
 } from "../helpers/events";
 import { joinDue, splitDue, type TaskEdits } from "../helpers/tasks";
-import { parseDay } from "../goals";
+import { parseDay } from "../helpers/goals";
 import { usePeople } from "../helpers/people";
 import Avatars from "../components/Avatars";
 import EventDialog, { type NewEvent } from "../components/EventDialog";

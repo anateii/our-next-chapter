@@ -35,7 +35,7 @@
 /* Summary */
 .fin-summary {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
 .card.fin-sum {
@@ -118,10 +118,43 @@
 .fund-legend .partner {
   background: var(--sage);
 }
+/* The same bar as a native <progress> (budget and spending): browsers draw
+   their own grey bar unless every part is restyled. */
+progress.fin-bar {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  border: none;
+  color: var(--sage); /* the fill in browsers that only read currentColor */
+}
+progress.fin-bar::-webkit-progress-bar {
+  background: var(--col-bg);
+  border-radius: 4px;
+}
+progress.fin-bar::-webkit-progress-value {
+  background: var(--sage);
+  border-radius: 4px;
+  transition: width 300ms var(--ease);
+}
+progress.fin-bar::-moz-progress-bar {
+  background: var(--sage);
+  border-radius: 4px;
+}
+/* Over budget */
+progress.fin-bar.over {
+  color: var(--alert);
+}
+progress.fin-bar.over::-webkit-progress-value {
+  background: var(--alert);
+}
+progress.fin-bar.over::-moz-progress-bar {
+  background: var(--alert);
+}
 
 /* Panels */
-/* Savings funds and Shared budget: same width, same height. The budget sets
-   the height; the funds list fills its card to match and scrolls inside. */
+/* Shared budget and Shared expenses: same width, same height. The budget sets
+   the height; the expense list fills its card to match and scrolls inside. */
 .fin-two {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -132,15 +165,15 @@
   /* Start the funds list (and its wrapper) at 0px so it doesn't make the row
      taller; it then grows to fill the card. `flex: 1` alone starts at 0%,
      which in an auto-height card falls back to the full content height. */
-  .fin-funds .scroll-fade.fill,
-  .fin-funds .scroll-fade.fill > .scrolls {
+  .fin-expenses .scroll-fade.fill,
+  .fin-expenses .scroll-fade.fill > .scrolls {
     flex-basis: 0px;
     height: 0;
   }
 }
 @media (max-width: 1100px) {
-  /* Stacked: the funds get their own height, up to about three funds. */
-  .fin-funds .scroll-fade.fill > .scrolls {
+  /* Stacked: the expenses get their own height, up to about eight rows. */
+  .fin-expenses .scroll-fade.fill > .scrolls {
     max-height: 560px;
   }
 }
@@ -168,8 +201,41 @@
 }
 
 /* Savings funds */
+/* Saved together: the total of all funds, at the top of the panel */
+.fin-total {
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: var(--surface-sunken);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.fin-total-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+/* One segment per fund, with a hairline between them */
+.fin-total-bar {
+  gap: 2px;
+}
+.fin-total-bar i:first-child {
+  border-radius: 4px 0 0 4px;
+}
+/* Fund colours: the bar segment and its legend dot */
+.fund-c1 { background: var(--accent); }
+.fund-c2 { background: var(--dot-1); }
+.fund-c3 { background: var(--teal); }
+.fund-c4 { background: var(--plum); }
+.fund-c5 { background: var(--sky); }
+.fund-c6 { background: var(--peach); }
 .funds {
   display: grid;
+  /* Full-width panel: as many columns as fit, one on phones */
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
+  align-items: start;
   gap: 12px;
 }
 .fund {
@@ -231,9 +297,6 @@
   font-weight: 600;
 }
 .fund-nums {
-  /* When there are few funds, each card stretches to fill the panel: keep the
-     name at the top and the figures, bar and legend at the bottom. */
-  margin-top: auto;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -354,7 +417,9 @@
 .cat-name {
   display: flex;
   justify-content: space-between;
+  align-items: baseline;
   gap: 8px;
+  line-height: 20px;
   font-size: 14px;
   font-weight: 600;
 }
@@ -365,6 +430,9 @@
   white-space: nowrap;
 }
 .cat-left {
+  /* On the name's line, not centred between the name and the bar */
+  align-self: start;
+  line-height: 20px;
   min-width: 70px;
   font-size: 13px;
   font-weight: 600;
@@ -377,53 +445,75 @@
 }
 
 /* Expenses */
+/* Shared Expenses filters: one quiet row above the list, no boxes */
 .fin-filters {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line-soft);
 }
-.fin-filters .segmented {
-  max-width: 100%;
-  margin: 0;
+.exp-pills {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
 }
-.fin-filters .segmented button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.exp-pills button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
   white-space: nowrap;
+  transition:
+    background var(--dur) var(--ease),
+    color var(--dur) var(--ease);
 }
-/* Category filter: a dropdown with its own chevron, like the dialogs' selects */
+@media (hover: hover) {
+  .exp-pills button:hover {
+    color: var(--text);
+  }
+}
+.exp-pills button[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-weight: 600;
+}
+/* Category filter: plain text with a chevron, no box */
 .fin-select {
-  min-height: 44px;
-  min-width: 190px;
-  padding: 0 42px 0 14px;
-  border: 1px solid var(--field-line);
-  border-radius: 14px;
-  background: var(--surface-sunken)
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%238c8aa0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
-    no-repeat right 14px center / 18px;
+  min-height: 32px;
+  padding: 0 28px 0 10px;
+  border: none;
+  border-radius: 999px;
+  background: transparent
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238c8aa0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 8px center / 16px;
   appearance: none;
-  color: var(--text);
+  color: var(--muted);
   font: inherit;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   transition:
     border-color var(--dur) var(--ease),
     background-color var(--dur) var(--ease);
 }
 .fin-select:focus-visible {
-  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
-/* A category is picked: tint it, so it's clear the list is filtered */
+/* A category is picked: tint it like a pressed pill, so it's clear the list is filtered */
 .fin-select.filtered {
-  border-color: var(--accent);
   background-color: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-strong);
+  font-weight: 600;
 }
 .fin-day {
   padding: 12px 0 2px;
@@ -448,6 +538,14 @@
 }
 .exp:last-child {
   border-bottom: none;
+}
+/* A settle-up row has one more column: its menu (Remove settle-up) */
+.exp.settle {
+  grid-template-columns: 40px minmax(0, 1fr) auto auto;
+}
+.exp.settle .menu .icon-btn {
+  margin-right: -10px;
+  color: var(--muted);
 }
 .exp .cat-icon {
   width: 40px;
@@ -587,6 +685,17 @@ button.exp-main:disabled {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
+/* Category name with its icon tile, a smaller version of the Shared Budget card's */
+.budget-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.budget-label .cat-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+}
 .finance-dialog input[type="range"] {
   min-height: 44px;
   padding: 0;
@@ -631,13 +740,15 @@ button.exp-main:disabled {
   .card.fin-panel {
     padding: 18px 16px;
   }
-  .fin-filters .segmented,
-  .fin-select {
-    width: 100%;
+  .exp-pills {
+    flex: 1 1 auto;
   }
   .exp {
     grid-template-columns: 36px minmax(0, 1fr) auto;
     gap: 10px;
+  }
+  .exp.settle {
+    grid-template-columns: 36px minmax(0, 1fr) auto auto;
   }
   .exp .cat-icon {
     width: 36px;
@@ -668,4 +779,142 @@ button.exp-main:disabled {
   .btn-ghost {
     transition: none;
   }
+}
+
+/* Shared Budget: view switcher next to Edit */
+.fin-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Shared Budget as a pie (BudgetPie.tsx). Chart palette: the data-viz
+   reference categorical palette, validated for touching marks in both themes
+   (adjacent CVD ΔE ≥ 8.4, normal-vision ΔE ≥ 17, grey "Other" included).
+   Slot n = the nth category; "Other" is a neutral grey. A few slots sit under
+   3:1 on the surface, so the legend always names each slice with its amount.
+   Text stays in text colours, never a slice colour. */
+.budget-pie {
+  --viz-1: #2a78d6;
+  --viz-2: #eb6834;
+  --viz-3: #1baf7a;
+  --viz-4: #eda100;
+  --viz-5: #e87ba4;
+  --viz-6: #008300;
+  --viz-7: #6250d6;
+  --viz-8: #e34948;
+  --viz-other: #8b8a86;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px 28px;
+  padding-top: 4px;
+}
+[data-theme="dark"] .budget-pie {
+  --viz-1: #3987e5;
+  --viz-2: #d95926;
+  --viz-3: #199e70;
+  --viz-4: #c98500;
+  --viz-5: #d55181;
+  --viz-6: #008300;
+  --viz-7: #9085e9;
+  --viz-8: #e66767;
+  --viz-other: #5f5e5a; /* darker than the slots, so it stays apart from the red under protan */
+}
+.empty-pie {
+  display: block;
+}
+.pie-figure {
+  position: relative;
+  flex: 0 0 200px;
+  width: 200px;
+  height: 200px;
+  margin: 0 auto;
+}
+.pie-figure svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* A 2px gap between slices, in the card's own colour */
+.pie-figure path {
+  stroke: var(--surface);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  transition: opacity var(--dur) var(--ease);
+}
+.pie-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  text-align: center;
+  pointer-events: none;
+}
+.pie-center b {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.pie-center-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.pie-center-sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+.pie-legend {
+  flex: 1 1 220px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+.pie-legend li {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto 44px;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 14px;
+  transition: opacity var(--dur) var(--ease);
+}
+.pie-legend li:last-child {
+  border-bottom: none;
+}
+.pie-legend i {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+}
+.pie-legend-name {
+  /* Wraps, so "Other" can list everything it holds */
+  padding: 6px 0;
+  overflow-wrap: anywhere;
+}
+.pie-legend-name small {
+  font-size: 12px;
+  color: var(--muted);
+}
+.pie-legend-amt {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.pie-legend-share {
+  text-align: right;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+/* Hovering a slice or a legend row fades the others */
+.pie-dim {
+  opacity: 0.35;
 }

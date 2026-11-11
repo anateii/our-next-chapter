@@ -1,29 +1,10 @@
 import { forwardRef, useState } from "react";
-import { CircleAlert, X } from "lucide-react";
 import { usePeople } from "../helpers/people";
 import type { Partner } from "../helpers/finances";
 import { moods, type CheckInAnswer, type CheckInAnswers, type Mood } from "../helpers/ourspace";
 import Avatars from "./Avatars";
-
-type DialogRef = React.RefObject<HTMLDialogElement | null>;
-const closeRef = (ref: React.ForwardedRef<HTMLDialogElement>) => (ref as DialogRef).current?.close();
-
-function FieldError({ id, children }: Readonly<{ id: string; children: string }>) {
-  return (
-    <p id={id} className="field-error" role="alert">
-      <CircleAlert aria-hidden="true" size={16} />
-      {children}
-    </p>
-  );
-}
-
-function CloseButton({ dialog }: Readonly<{ dialog: React.ForwardedRef<HTMLDialogElement> }>) {
-  return (
-    <button type="button" className="icon-btn" aria-label="Close" onClick={() => closeRef(dialog)}>
-      <X aria-hidden="true" size={20} />
-    </button>
-  );
-}
+import { CloseButton, FieldError } from "./dialogParts";
+import { closeRef } from "../helpers/dialogs";
 
 /* Check-in: how the week felt, then three questions. Both of you
    answer on the same screen. A closed check-in keeps its answers until it's

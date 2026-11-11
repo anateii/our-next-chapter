@@ -252,9 +252,13 @@ export async function POST(req: Request) {
         (await isMember(me.spaceId, fromUserId)) &&
         (await isMember(me.spaceId, toUserId));
       if (!valid) return json({ error: "fromUserId and toUserId must be the two of you" }, 400);
+      // Optional `at`: when Undo puts back a removed settle-up, it keeps its original date.
+      const at = body.at === undefined ? undefined : new Date(String(body.at));
+      if (at && (Number.isNaN(at.getTime()) || at > new Date()))
+        return json({ error: "at must be a past date (ISO)" }, 400);
       const [s] = await db
         .insert(settlements)
-        .values({ spaceId: me.spaceId, fromUserId, toUserId, cents: body.cents })
+        .values({ spaceId: me.spaceId, fromUserId, toUserId, cents: body.cents, ...(at ? { createdAt: at } : {}) })
         .returning();
       await logActivity({ ...log, kind: "settled", title: euros(s.cents) });
       return json({ settlement: toSettlement(s) }, 201);

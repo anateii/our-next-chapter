@@ -184,3 +184,29 @@ export const paceText = (left: number, monthly: number) => {
   eta.setMonth(eta.getMonth() + months, 1);
   return `On track for ${eta.toLocaleDateString(undefined, { month: "short", year: "numeric" })}`;
 };
+
+/* Months and progress, shared by the Finances cards */
+
+// "YYYY-MM" of a "YYYY-MM-DD" day, and of a local date.
+export const monthOf = (day: string) => day.slice(0, 7);
+export const monthKey = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+const monthName = new Intl.DateTimeFormat(undefined, { month: "long", year: "numeric" });
+// "2026-11" -> "November 2026"
+export const monthTitle = (month: string) => {
+  const [y, m] = month.split("-").map(Number);
+  return monthName.format(new Date(y, m - 1, 1));
+};
+// "2026-11" -> "November"
+export const monthShort = (month: string) => monthTitle(month).split(" ")[0];
+// The "YYYY-MM" `n` months from `month`.
+export const shiftMonthKey = (month: string, n: number) => {
+  const [y, m] = month.split("-").map(Number);
+  return monthKey(new Date(y, m - 1 + n, 1));
+};
+// The month's expenses, and their total.
+export const expensesIn = (f: Finances, month: string) => f.expenses.filter((x) => monthOf(x.day) === month);
+export const totalOf = (xs: readonly { cents: number }[]) => xs.reduce((s, x) => s + x.cents, 0);
+export const budgetTotalOf = (f: Finances) => categories.reduce((s, c) => s + (f.budgets[c.key] ?? 0), 0);
+// A part of a whole, as a percentage from 0 to 100.
+export const pct = (part: number, whole: number) => (whole ? Math.min(100, (part / whole) * 100) : 0);

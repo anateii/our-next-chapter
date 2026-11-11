@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { Plus, LayoutGrid, List } from "lucide-react";
 import type { Goal, GoalStatus } from "../types";
-import { goalStatus, type GoalSteps } from "../goals";
+import { goalStatus, type GoalSteps } from "../helpers/goals";
 import GoalCard from "../components/GoalCard";
 import NewGoalDialog, { type GoalEdits } from "../components/NewGoalDialog";
 import "./Goals.css";

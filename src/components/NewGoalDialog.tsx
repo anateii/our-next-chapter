@@ -1,7 +1,7 @@
 import { forwardRef, useState } from "react";
 import { Check } from "lucide-react";
 import type { Goal, GoalCategory, Person } from "../types";
-import { categoryIcons, type GoalSteps } from "../goals";
+import { categoryIcons, type GoalSteps } from "../helpers/goals";
 import { usePeople } from "../helpers/people";
 import PhotoField from "./PhotoField";
 

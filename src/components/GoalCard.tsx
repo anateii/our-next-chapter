@@ -6,7 +6,7 @@ import {
   goalStatus,
   parseDay,
   type GoalSteps,
-} from "../goals";
+} from "../helpers/goals";
 import { usePeople } from "../helpers/people";
 import Avatars from "./Avatars";
 import GoalMenu from "./GoalMenu";

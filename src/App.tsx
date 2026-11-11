@@ -3,7 +3,6 @@ import { flushSync } from "react-dom";
 import { smoothly } from "./helpers/motion";
 import { Show, SignIn, useAuth } from "@clerk/react";
 import type { CalendarEvent, Goal, Task } from "./types";
-import { goalProgress, goalStatus, goalSteps } from "./goals";
 import SettingsDialog, { type SettingsTab, type SpaceFields } from "./components/SettingsDialog";
 import Sidebar from "./components/Sidebar";
 import Home from "./pages/Home";
@@ -24,6 +23,9 @@ import "./App.css";
 import { useApi } from "./helpers/api";
 import {
   fromApiGoal,
+  goalProgress,
+  goalStatus,
+  goalSteps,
   toApiNewGoal,
   toPerson,
   toUserId,
