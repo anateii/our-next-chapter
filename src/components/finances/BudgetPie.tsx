@@ -4,44 +4,28 @@ import { categories, formatWhole, pct, totalOf, type Category, type Expense } fr
 // The month's spending by category as a donut, with the total in the middle
 // and a legend of names, amounts and shares (so colour is never the only cue).
 // Colours follow the category, never its rank: slots 1-8 of the chart palette
-// (.budget-pie in Finances.css) in category order, grey for "Other". Past six
-// slices, the smallest fold into "Other" so neighbours stay easy to tell apart.
-const MAX_SLICES = 6;
+// (--viz-* in index.css) in category order, grey for "Other". Every category
+// with spending gets its own slice, the same colour as its icon in the list.
 const SIZE = 200;
 const R_OUT = 96;
 const R_IN = 66;
 
 interface Slice {
-  key: Category | "rest";
+  key: Category;
   label: string;
   cents: number;
   color: string; // CSS variable
-  includes?: string[]; // "Other" only: the categories folded into it
 }
 
 function slicesFor(expenses: readonly Expense[]): Slice[] {
-  const named = categories
-    .filter((c) => c.key !== "other")
+  return categories
     .map((c, i) => ({
       key: c.key as Category,
       label: c.label,
       cents: totalOf(expenses.filter((x) => x.category === c.key)),
-      color: `var(--viz-${i + 1})`,
+      color: c.key === "other" ? "var(--viz-other)" : `var(--viz-${i + 1})`,
     }))
     .filter((s) => s.cents > 0);
-  let rest = totalOf(expenses.filter((x) => x.category === "other"));
-  let shown = named;
-  let folded: string[] = [];
-  // Too many slices: keep the largest, fold the others into "Other".
-  if (named.length + (rest > 0 ? 1 : 0) > MAX_SLICES) {
-    const keep = new Set([...named].sort((a, b) => b.cents - a.cents).slice(0, MAX_SLICES - 1).map((s) => s.key));
-    const small = named.filter((s) => !keep.has(s.key));
-    rest += totalOf(small);
-    folded = small.map((s) => s.label);
-    shown = named.filter((s) => keep.has(s.key));
-  }
-  if (rest === 0) return shown;
-  return [...shown, { key: "rest", label: "Other", cents: rest, color: "var(--viz-other)", includes: folded }];
 }
 
 // One ring segment from angle a0 to a1 (radians, 0 = 12 o'clock, clockwise).
@@ -91,7 +75,7 @@ export default function BudgetPie({
   });
 
   const summary = slices
-    .map((s) => `${s.label}${s.includes?.length ? ` (${s.includes.join(", ")})` : ""} ${formatWhole(s.cents)} (${share(s)})`)
+    .map((s) => `${s.label} ${formatWhole(s.cents)} (${share(s)})`)
     .join(", ");
 
   return (
@@ -119,7 +103,6 @@ export default function BudgetPie({
           {on ? (
             <>
               <span className="pie-center-label">{on.label}</span>
-              {on.includes?.length ? <span className="pie-center-sub">incl. {on.includes.join(", ")}</span> : null}
               <b>{formatWhole(on.cents)}</b>
               <span className="pie-center-sub">{share(on)} of spending</span>
             </>
@@ -144,7 +127,6 @@ export default function BudgetPie({
             <span className="pie-legend-name">
               {s.label}
               {/* Name what "Other" holds, so a small category never seems to vanish */}
-              {s.includes?.length ? <small> · {s.includes.join(", ")}</small> : null}
             </span>
             <span className="pie-legend-amt">{formatWhole(s.cents)}</span>
             <span className="pie-legend-share">{share(s)}</span>

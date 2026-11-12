@@ -162,10 +162,6 @@ export default function Calendar({
   };
 
   const goToMonth = (d: Date) => setCursor(new Date(d.getFullYear(), d.getMonth(), 1));
-  const goToday = () => {
-    goToMonth(today);
-    setSelected(keyOf(today));
-  };
 
   const whoOptions: { key: Who; label: string }[] = [
     { key: "all", label: "All" },
@@ -213,9 +209,6 @@ export default function Calendar({
               <ChevronRight aria-hidden="true" size={20} />
             </button>
           )}
-          <button type="button" className="cal-today" onClick={goToday}>
-            Today
-          </button>
         </div>
         <div className="view-toggle" aria-label="Layout">
           <button

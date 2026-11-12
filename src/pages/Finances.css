@@ -152,6 +152,35 @@ progress.fin-bar.over::-moz-progress-bar {
   background: var(--alert);
 }
 
+/* Month switcher (MonthNav.tsx), styled like the Calendar's toolbar.
+   It sets the month for Shared Spending, Shared Budget and Shared Expenses. */
+.fin-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.fin-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.fin-month-title {
+  min-width: 9em;
+  margin: 0;
+  padding: 0 6px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  text-align: center;
+}
+.fin-nav .icon-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 /* Panels */
 /* Shared budget and Shared expenses: same width, same height. The budget sets
    the height; the expense list fills its card to match and scrolls inside. */
@@ -358,23 +387,6 @@ progress.fin-bar.over::-moz-progress-bar {
 }
 
 /* Budget */
-.fin-month {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 2px;
-  border-radius: 12px;
-  background: var(--seg-bg);
-}
-.fin-month span {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-2);
-}
-.fin-month .icon-btn:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
 .cats {
   list-style: none;
   margin: 0;

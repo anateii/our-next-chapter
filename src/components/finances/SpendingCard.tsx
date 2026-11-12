@@ -49,7 +49,7 @@ export default function SpendingCard({
         <span className="fin-label">Shared Spending · {monthShort(month)}</span>
         <InfoTip label="Shared Spending">
           Your shared spending this month and how much budget is left. Check other months with the
-          arrows in Shared Budget.
+          month arrows at the top of the page.
         </InfoTip>
       </div>
       <span className="fin-big">

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChartPie, ChevronLeft, ChevronRight, List, SlidersHorizontal } from "lucide-react";
+import { ChartPie, List, SlidersHorizontal } from "lucide-react";
 import InfoTip from "../InfoTip";
 import BudgetPie from "./BudgetPie";
 import { smoothly } from "../../helpers/motion";
@@ -8,7 +8,6 @@ import {
   categories,
   expensesIn,
   formatWhole,
-  monthKey,
   monthTitle,
   pct,
   totalOf,
@@ -17,20 +16,17 @@ import {
 
 // The shared budget panel, for the month on screen: each category's spending
 // against its limit (list), or the month's spending split by category (pie).
-// Its arrows change the month for the whole page.
+// The month comes from the page's month switcher (MonthNav).
 export default function SharedBudget({
   data,
   month,
-  onShiftMonth,
   onEdit,
 }: Readonly<{
   data: Finances;
   month: string;
-  onShiftMonth: (n: number) => void;
   onEdit: () => void;
 }>) {
   const monthExpenses = expensesIn(data, month);
-  const isThisMonth = month === monthKey(new Date());
   const [view, setView] = useState<"list" | "pie">("list");
 
   return (
@@ -69,21 +65,6 @@ export default function SharedBudget({
             <SlidersHorizontal aria-hidden="true" size={16} /> Edit
           </button>
         </div>
-      </div>
-      <div className="fin-month">
-        <button type="button" className="icon-btn" aria-label="Previous month" onClick={() => onShiftMonth(-1)}>
-          <ChevronLeft aria-hidden="true" size={18} />
-        </button>
-        <span aria-live="polite">{monthTitle(month)}</span>
-        <button
-          type="button"
-          className="icon-btn"
-          aria-label="Next month"
-          disabled={isThisMonth}
-          onClick={() => onShiftMonth(1)}
-        >
-          <ChevronRight aria-hidden="true" size={18} />
-        </button>
       </div>
       {view === "pie" ? (
         <BudgetPie expenses={monthExpenses} budgetTotal={budgetTotalOf(data)} monthName={monthTitle(month)} />

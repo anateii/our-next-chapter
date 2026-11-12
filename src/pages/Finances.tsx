@@ -24,6 +24,8 @@ import BalanceCard from "../components/finances/BalanceCard";
 import SavingsFunds from "../components/finances/SavingsFunds";
 import SharedBudget from "../components/finances/SharedBudget";
 import SharedExpenses from "../components/finances/SharedExpenses";
+import MonthNav from "../components/finances/MonthNav";
+import { smoothly } from "../helpers/motion";
 import "./Finances.css";
 
 // The Finances page: lays out the cards (components/finances/) and owns what
@@ -95,6 +97,11 @@ export default function Finances({
         </div>
       </header>
 
+      <MonthNav
+        month={month}
+        onShift={(n) => smoothly(() => setMonth((m) => shiftMonthKey(m, n)))}
+      />
+
       <section className="fin-summary" aria-label="Summary">
         <SpendingCard data={data} month={month} onSetBudget={openBudget} />
         <BalanceCard data={data} me={me} onSettleUp={openSettle} />
@@ -105,7 +112,6 @@ export default function Finances({
         <SharedBudget
           data={data}
           month={month}
-          onShiftMonth={(n) => setMonth((m) => shiftMonthKey(m, n))}
           onEdit={openBudget}
         />
         <SharedExpenses
