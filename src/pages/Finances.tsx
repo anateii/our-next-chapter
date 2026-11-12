@@ -6,6 +6,7 @@ import type { ApiMember } from "../helpers/goals";
 import {
   balance,
   monthKey,
+  paidIn,
   shiftMonthKey,
   type Expense,
   type Finances as FinanceData,
@@ -144,6 +145,7 @@ export default function Finances({
         ref={fundRef}
         fund={editingFund}
         saved={editingFundSaved}
+        paidThisMonth={editingFund ? paidIn(editingFund.id, monthKey(new Date()), data.contributions) : 0}
         goals={goals}
         onSave={actions.saveFund}
         onDelete={actions.deleteFund}

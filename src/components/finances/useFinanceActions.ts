@@ -129,13 +129,18 @@ export function useFinanceActions({
     if (id) {
       setData((d) => ({
         ...d,
-        funds: d.funds.map((x) => (x.id === id ? { ...x, ...f, goalId: f.goalId ?? undefined } : x)),
+        funds: d.funds.map((x) => (x.id === id ? { ...x, ...f, goalId: f.goalId ?? undefined, endDay: f.endDay ?? undefined } : x)),
       }));
       write("/finances", "PATCH", { type: "fund", id, ...f }).then(reload, failed("Save the fund"));
       notify({ message: "Fund saved", ok: true });
       return;
     }
-    const temp: Fund = { id: `new-${crypto.randomUUID()}`, ...f, goalId: f.goalId ?? undefined };
+    const temp: Fund = {
+      id: `new-${crypto.randomUUID()}`,
+      ...f,
+      goalId: f.goalId ?? undefined,
+      endDay: f.endDay ?? undefined,
+    };
     setData((d) => ({ ...d, funds: [...d.funds, temp] }));
     write("/finances", "POST", { type: "fund", ...f }).then(reload, failed("Create the fund"));
     notify({ message: `Started “${f.name}”`, ok: true });

@@ -29,6 +29,10 @@
 .dialog::backdrop {
   background: rgba(28, 27, 46, 0.4);
 }
+/* Dark pages need a deeper scrim for the dialog to stand out. */
+[data-theme="dark"] .dialog::backdrop {
+  background: rgba(6, 6, 12, 0.72);
+}
 @keyframes dialog-in {
   from {
     opacity: 0;

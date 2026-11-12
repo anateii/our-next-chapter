@@ -64,6 +64,8 @@ const toFund = (f: typeof funds.$inferSelect) => ({
   goalId: f.goalId,
   targetCents: f.targetCents,
   monthlyCents: f.monthlyCents,
+  startDay: f.startDay ?? f.createdAt.toISOString().slice(0, 10),
+  endDay: f.endDay,
 });
 const toContribution = (c: typeof contributions.$inferSelect) => ({
   id: c.id,
@@ -154,6 +156,17 @@ async function fundFields(body: Record<string, unknown>, spaceId: string, requir
       return { error: "monthlyCents must be 0 or more cents" };
     out.monthlyCents = body.monthlyCents as number;
   }
+  if ("startDay" in body) {
+    if (!isDay(body.startDay)) return { error: "startDay must be a date like 2026-11-04" };
+    out.startDay = body.startDay;
+  }
+  if ("endDay" in body) {
+    const endDay = body.endDay ?? null;
+    if (endDay !== null && !isDay(endDay)) return { error: "endDay must be a date like 2027-06-30, or null" };
+    out.endDay = endDay;
+  }
+  if (out.startDay && out.endDay && out.endDay < out.startDay)
+    return { error: "endDay can't be before startDay" };
   if ("goalId" in body) {
     const goalId = body.goalId ?? null;
     if (!(await isSpaceGoal(spaceId, goalId))) return { error: "Goal must be in your space" };

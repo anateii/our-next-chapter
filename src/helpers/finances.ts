@@ -35,7 +35,15 @@ export type Split = "equal" | "income" | "owner" | "partner";
 
 // What GET /api/finances returns (see api/finances.ts).
 export interface ApiFinances {
-  funds: { id: string; name: string; goalId: string | null; targetCents: number; monthlyCents: number }[];
+  funds: {
+    id: string;
+    name: string;
+    goalId: string | null;
+    targetCents: number;
+    monthlyCents: number;
+    startDay?: string;
+    endDay?: string | null;
+  }[];
   contributions: { id: string; fundId: string; userId: string; cents: number; at: string }[];
   expenses: {
     id: string;
@@ -58,6 +66,8 @@ export interface Fund {
   goalId?: string;
   targetCents: number;
   monthlyCents: number;
+  startDay: string; // "YYYY-MM-DD": monthly payments are due from this month
+  endDay?: string; // "YYYY-MM-DD": when you mean to reach the target
 }
 export interface Contribution {
   id: string;
@@ -107,7 +117,13 @@ const partnerOf = (userId: string, members: readonly ApiMember[]): Partner => {
 };
 
 export const fromApiFinances = (f: ApiFinances, members: readonly ApiMember[]): Finances => ({
-  funds: f.funds.map((x) => ({ ...x, goalId: x.goalId ?? undefined })),
+  // An API from before timeframes sends no startDay: count the fund as started today.
+  funds: f.funds.map((x) => ({
+    ...x,
+    goalId: x.goalId ?? undefined,
+    startDay: x.startDay ?? dayKey(new Date()),
+    endDay: x.endDay ?? undefined,
+  })),
   contributions: f.contributions.map(({ userId, ...c }) => ({ ...c, who: partnerOf(userId, members) })),
   expenses: f.expenses.map(({ paidBy, category, ...x }) => ({
     ...x,
@@ -175,16 +191,6 @@ export const parseCents = (text: string) => {
 export const dayKey = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-// A fund's progress line: when you'll get there at the monthly amount.
-export const paceText = (left: number, monthly: number) => {
-  if (left <= 0) return "Target reached";
-  if (!monthly) return `${formatMoney(left)} to go`;
-  const months = Math.ceil(left / monthly);
-  const eta = new Date();
-  eta.setMonth(eta.getMonth() + months, 1);
-  return `On track for ${eta.toLocaleDateString(undefined, { month: "short", year: "numeric" })}`;
-};
-
 /* Months and progress, shared by the Finances cards */
 
 // "YYYY-MM" of a "YYYY-MM-DD" day, and of a local date.
@@ -210,3 +216,91 @@ export const totalOf = (xs: readonly { cents: number }[]) => xs.reduce((s, x) =>
 export const budgetTotalOf = (f: Finances) => categories.reduce((s, c) => s + (f.budgets[c.key] ?? 0), 0);
 // A part of a whole, as a percentage from 0 to 100.
 export const pct = (part: number, whole: number) => (whole ? Math.min(100, (part / whole) * 100) : 0);
+
+/* A fund's timeframe and this month's payment */
+
+const monthYear = new Intl.DateTimeFormat(undefined, { month: "short", year: "numeric" });
+// "2027-03" -> "Mar 2027"
+export const monthLabel = (month: string) => {
+  const [y, m] = month.split("-").map(Number);
+  return monthYear.format(new Date(y, m - 1, 1));
+};
+// Months from `a` to `b` ("YYYY-MM"), counting both: 2026-11 to 2027-01 is 3.
+export const monthsBetween = (a: string, b: string) => {
+  const [ay, am] = a.split("-").map(Number);
+  const [by, bm] = b.split("-").map(Number);
+  return (by - ay) * 12 + (bm - am) + 1;
+};
+
+// What's been put into a fund in `month` ("YYYY-MM").
+export const paidIn = (fundId: string, month: string, contributions: readonly Contribution[]) =>
+  contributions
+    .filter((c) => c.fundId === fundId && monthKey(new Date(c.at)) === month)
+    .reduce((s, c) => s + c.cents, 0);
+
+// The month the target is reached, if you keep to the monthly amount: this
+// month's payment (or what's left of it) first, then one a month after that.
+// Payments only start in the fund's start month. null without a monthly amount.
+export const finishMonth = (left: number, monthly: number, paidThisMonth: number, startDay: string, now = new Date()) => {
+  if (left <= 0) return monthKey(now);
+  if (!monthly) return null;
+  const today = monthKey(now);
+  const first = monthOf(startDay) > today ? monthOf(startDay) : today;
+  const dueNow = first === today ? Math.max(0, monthly - paidThisMonth) : monthly;
+  if (left <= dueNow) return first;
+  return shiftMonthKey(first, Math.ceil((left - dueNow) / monthly));
+};
+
+// What it takes each month, from this month on, to reach the target by the end day.
+export const neededMonthly = (left: number, endDay: string, startDay: string, now = new Date()) => {
+  const today = monthKey(now);
+  const first = monthOf(startDay) > today ? monthOf(startDay) : today;
+  const months = monthsBetween(first, monthOf(endDay));
+  return months > 0 ? Math.ceil(left / months / 100) * 100 : left;
+};
+
+export type FundStatus =
+  | { kind: "done" }
+  | { kind: "none" } // no monthly amount, or outside the timeframe
+  | { kind: "paid"; month: string }
+  | { kind: "missing"; month: string; cents: number }
+  // The monthly amount won't reach the target by the end day: `cents` a month would.
+  | { kind: "behind"; endDay: string; cents: number };
+
+// Is the fund keeping up? Behind its end day first, then this month's payment.
+// Only once the fund has started and before its end day's month is over.
+export const fundStatus = (f: Fund, contributions: readonly Contribution[], now = new Date()): FundStatus => {
+  const saved = savedIn(f.id, contributions);
+  const left = f.targetCents - saved.owner - saved.partner;
+  if (left <= 0) return { kind: "done" };
+  const month = monthKey(now);
+  if (monthOf(f.startDay) > month || (f.endDay !== undefined && monthOf(f.endDay) < month)) return { kind: "none" };
+  const paid = paidIn(f.id, month, contributions);
+  if (f.endDay !== undefined) {
+    const finish = finishMonth(left, f.monthlyCents, paid, f.startDay, now);
+    if (finish === null || finish > monthOf(f.endDay))
+      return { kind: "behind", endDay: f.endDay, cents: neededMonthly(left, f.endDay, f.startDay, now) };
+  }
+  if (!f.monthlyCents) return { kind: "none" };
+  return paid >= f.monthlyCents
+    ? { kind: "paid", month }
+    : { kind: "missing", month, cents: f.monthlyCents - paid };
+};
+
+// The Fund dialog's live line: when you'll get there, or what it takes to get there in time.
+export const planText = (p: {
+  left: number;
+  monthly: number;
+  paidThisMonth: number;
+  startDay: string;
+  endDay?: string;
+}) => {
+  if (p.left <= 0) return null;
+  const finish = finishMonth(p.left, p.monthly, p.paidThisMonth, p.startDay);
+  const at = p.monthly ? `At ${formatWhole(p.monthly)} a month you'll get there in ${monthLabel(finish!)}` : "";
+  if (!p.endDay) return at ? `${at}.` : null;
+  const need = neededMonthly(p.left, p.endDay, p.startDay);
+  const end = monthLabel(monthOf(p.endDay));
+  if (at && finish! <= monthOf(p.endDay)) return `${at}, in time for ${end}.`;
+  return `To get there by ${end}, put in ${formatWhole(need)} a month.`;
+};

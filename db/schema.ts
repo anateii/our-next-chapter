@@ -242,6 +242,10 @@ export const funds = pgTable(
     goalId: uuid("goal_id").references(() => goals.id, { onDelete: "set null" }),
     targetCents: integer("target_cents").notNull(),
     monthlyCents: integer("monthly_cents").notNull().default(0), // what you plan to add each month
+    // The timeframe: monthly payments are due from the start day's month, and the
+    // target is meant to be reached by the end day. Older funds start when created.
+    startDay: text("start_day"), // "YYYY-MM-DD"
+    endDay: text("end_day"), // "YYYY-MM-DD", optional
     createdAt: createdAt(),
   },
   (t) => [index("funds_space_idx").on(t.spaceId)],

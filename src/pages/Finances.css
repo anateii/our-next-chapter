@@ -126,22 +126,22 @@ progress.fin-bar {
   display: block;
   width: 100%;
   border: none;
-  color: var(--sage); /* the fill in browsers that only read currentColor */
+  color: var(--cat, var(--sage)); /* the fill in browsers that only read currentColor */
 }
 progress.fin-bar::-webkit-progress-bar {
   background: var(--col-bg);
   border-radius: 4px;
 }
 progress.fin-bar::-webkit-progress-value {
-  background: var(--sage);
+  background: var(--cat, var(--sage));
   border-radius: 4px;
   transition: width 300ms var(--ease);
 }
 progress.fin-bar::-moz-progress-bar {
-  background: var(--sage);
+  background: var(--cat, var(--sage));
   border-radius: 4px;
 }
-/* Over budget */
+/* Over budget: red, whatever the category's colour */
 progress.fin-bar.over {
   color: var(--alert);
 }
@@ -310,10 +310,33 @@ progress.fin-bar.over::-moz-progress-bar {
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
-.pace {
-  font-size: 13px;
+/* How the fund is doing: on track (green), this month missing (yellow), behind its end day (red) */
+.fund-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  margin: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--sage);
+}
+.fund-status.paid {
+  background: var(--sage-soft);
+  color: var(--sage-strong);
+}
+.fund-status.missing {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+.fund-status.behind {
+  background: var(--danger-soft);
+  color: var(--danger-strong);
+}
+/* The live "you'll get there in…" line in the Fund dialog */
+.fund-plan {
+  margin: 0;
 }
 .fund-legend {
   display: flex;
@@ -372,41 +395,49 @@ progress.fin-bar.over::-moz-progress-bar {
   display: grid;
   place-items: center;
 }
-.cat-home {
-  background: var(--peach-soft);
-  color: var(--peach);
+/* Category icons and budget bars use the pie's colour for the same category
+   (--viz-n is the nth category in helpers/finances.ts). Bars take it from
+   data-cat, not a .cat-* class, so Goals.css's .cat-home etc. can't paint them. */
+.cat-icon.cat-home,
+[data-cat="home"] {
+  --cat: var(--viz-1);
 }
-.cat-utilities {
-  background: var(--teal-soft);
-  color: var(--teal);
+.cat-icon.cat-utilities,
+[data-cat="utilities"] {
+  --cat: var(--viz-2);
 }
-.cat-subscriptions {
-  background: var(--plum-soft);
-  color: var(--plum);
+.cat-icon.cat-subscriptions,
+[data-cat="subscriptions"] {
+  --cat: var(--viz-3);
 }
-.cat-transport {
-  background: var(--slate-soft);
-  color: var(--slate);
+.cat-icon.cat-transport,
+[data-cat="transport"] {
+  --cat: var(--viz-4);
 }
-.cat-health {
-  background: var(--danger-soft);
-  color: var(--danger);
+.cat-icon.cat-health,
+[data-cat="health"] {
+  --cat: var(--viz-5);
 }
-.cat-food {
-  background: var(--sage-soft);
-  color: var(--sage);
+.cat-icon.cat-food,
+[data-cat="food"] {
+  --cat: var(--viz-6);
 }
-.cat-out {
-  background: var(--amber-soft);
-  color: var(--amber);
+.cat-icon.cat-out,
+[data-cat="out"] {
+  --cat: var(--viz-7);
 }
-.cat-travel {
-  background: var(--sky-soft);
-  color: var(--sky);
+.cat-icon.cat-travel,
+[data-cat="travel"] {
+  --cat: var(--viz-8);
 }
-.cat-other {
-  background: var(--accent-soft);
-  color: var(--accent);
+.cat-icon.cat-other,
+[data-cat="other"] {
+  --cat: var(--viz-other);
+}
+/* Two classes, so Goals.css's own .cat-home / .cat-travel never win here. */
+.cat-icon:is(.cat-home, .cat-utilities, .cat-subscriptions, .cat-transport, .cat-health, .cat-food, .cat-out, .cat-travel, .cat-other) {
+  background: color-mix(in srgb, var(--cat) 16%, transparent);
+  color: var(--cat);
 }
 .cat-main {
   min-width: 0;
@@ -788,38 +819,16 @@ button.exp-main:disabled {
   gap: 8px;
 }
 
-/* Shared Budget as a pie (BudgetPie.tsx). Chart palette: the data-viz
-   reference categorical palette, validated for touching marks in both themes
-   (adjacent CVD ΔE ≥ 8.4, normal-vision ΔE ≥ 17, grey "Other" included).
-   Slot n = the nth category; "Other" is a neutral grey. A few slots sit under
+/* Shared Budget as a pie (BudgetPie.tsx). Colours: the --viz-* tokens in
+   index.css, slot n = the nth category, grey for "Other". A few slots sit under
    3:1 on the surface, so the legend always names each slice with its amount.
    Text stays in text colours, never a slice colour. */
 .budget-pie {
-  --viz-1: #2a78d6;
-  --viz-2: #eb6834;
-  --viz-3: #1baf7a;
-  --viz-4: #eda100;
-  --viz-5: #e87ba4;
-  --viz-6: #008300;
-  --viz-7: #6250d6;
-  --viz-8: #e34948;
-  --viz-other: #8b8a86;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 20px 28px;
   padding-top: 4px;
-}
-[data-theme="dark"] .budget-pie {
-  --viz-1: #3987e5;
-  --viz-2: #d95926;
-  --viz-3: #199e70;
-  --viz-4: #c98500;
-  --viz-5: #d55181;
-  --viz-6: #008300;
-  --viz-7: #9085e9;
-  --viz-8: #e66767;
-  --viz-other: #5f5e5a; /* darker than the slots, so it stays apart from the red under protan */
 }
 .empty-pie {
   display: block;

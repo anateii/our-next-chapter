@@ -1,11 +1,7 @@
 import { forwardRef, useState } from "react";
 import { Trash } from "lucide-react";
 import type { Goal } from "../../types";
-import {
-  formatWhole,
-  parseCents,
-  type Fund,
-} from "../../helpers/finances";
+import { dayKey, formatWhole, parseCents, planText, type Fund } from "../../helpers/finances";
 import { closeRef, useSession } from "../../helpers/dialogs";
 import { FieldError, MoneyInput } from "../dialogParts";
 
@@ -14,20 +10,40 @@ export interface FundFields {
   targetCents: number;
   monthlyCents: number;
   goalId: string | null;
+  startDay: string;
+  endDay: string | null;
 }
+
+// The form's current values, for the live plan line.
+const readPlan = (form: HTMLFormElement) => {
+  const data = new FormData(form);
+  const text = (key: string) => {
+    const v = data.get(key);
+    return typeof v === "string" ? v.trim() : "";
+  };
+  return {
+    targetCents: parseCents(text("target")) ?? 0,
+    monthlyCents: parseCents(text("monthly")) ?? 0,
+    startDay: text("start") || dayKey(new Date()),
+    endDay: text("end") || undefined,
+  };
+};
 
 // Starts a fund, or edits `fund` when one is passed.
 const FundDialog = forwardRef<
   HTMLDialogElement,
   {
     fund: Fund | null;
-    saved: number; // what's in `fund`, for the delete warning
+    saved: number; // what's in `fund`, for the delete warning and the plan line
+    paidThisMonth: number; // what's gone into `fund` this month
     goals: readonly Goal[];
     onSave: (fields: FundFields, id?: string) => void;
     onDelete: (id: string) => void;
   }
->(function FundDialog({ fund, saved, goals, onSave, onDelete }, ref) {
-  const [errors, setErrors] = useState<{ name?: boolean; target?: boolean; monthly?: boolean }>({});
+>(function FundDialog({ fund, saved, paidThisMonth, goals, onSave, onDelete }, ref) {
+  const [errors, setErrors] = useState<{ name?: boolean; target?: boolean; monthly?: boolean; end?: boolean }>({});
+  // Typed values, so the plan line follows along; null until the form changes.
+  const [plan, setPlan] = useState<ReturnType<typeof readPlan> | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [session, bump] = useSession();
 
@@ -41,24 +57,58 @@ const FundDialog = forwardRef<
     const monthlyValue = data.get("monthly");
     const monthlyText = typeof monthlyValue === "string" ? monthlyValue.trim() : "";
     const monthlyCents = monthlyText ? parseCents(monthlyText) : 0;
-    const next = { name: !name, target: !targetCents, monthly: monthlyCents === null };
+    const startValue = data.get("start");
+    const startDay = (typeof startValue === "string" && startValue) || dayKey(new Date());
+    const endValue = data.get("end");
+    const endDay = (typeof endValue === "string" && endValue) || null;
+    const next = {
+      name: !name,
+      target: !targetCents,
+      monthly: monthlyCents === null,
+      end: endDay !== null && endDay < startDay,
+    };
     setErrors(next);
-    if (next.name || next.target || next.monthly) {
-      let first = "#f-monthly";
+    if (next.name || next.target || next.monthly || next.end) {
+      let first = "#f-end";
       if (next.name) {
         first = "#f-name";
       } else if (next.target) {
         first = "#f-target";
+      } else if (next.monthly) {
+        first = "#f-monthly";
       }
       e.currentTarget.querySelector<HTMLElement>(first)?.focus();
       return;
     }
     onSave(
-      { name, targetCents: targetCents!, monthlyCents: monthlyCents!, goalId: String(data.get("goal") ?? "") || null },
+      {
+        name,
+        targetCents: targetCents!,
+        monthlyCents: monthlyCents!,
+        goalId: String(data.get("goal") ?? "") || null,
+        startDay,
+        endDay,
+      },
       fund?.id,
     );
     closeRef(ref);
   };
+
+  const current = plan ?? {
+    targetCents: fund?.targetCents ?? 0,
+    monthlyCents: fund?.monthlyCents ?? 0,
+    startDay: fund?.startDay ?? dayKey(new Date()),
+    endDay: fund?.endDay,
+  };
+  const planLine = current.targetCents
+    ? planText({
+        left: current.targetCents - saved,
+        monthly: current.monthlyCents,
+        paidThisMonth,
+        startDay: current.startDay,
+        endDay: current.endDay && current.endDay >= current.startDay ? current.endDay : undefined,
+      })
+    : null;
 
   return (
     <dialog
@@ -68,10 +118,16 @@ const FundDialog = forwardRef<
       onClose={() => {
         setErrors({});
         setConfirming(false);
+        setPlan(null);
         bump();
       }}
     >
-      <form key={`${fund?.id ?? "new"}-${session}`} onSubmit={submit} noValidate>
+      <form
+        key={`${fund?.id ?? "new"}-${session}`}
+        onSubmit={submit}
+        onInput={(e) => setPlan(readPlan(e.currentTarget))}
+        noValidate
+      >
         <div className="dialog-head">
           <h2 id="f-dialog-title">{fund ? "Edit fund" : "New fund"}</h2>
         </div>
@@ -106,6 +162,37 @@ const FundDialog = forwardRef<
             )}
           </div>
         </div>
+        <fieldset className="field">
+          <legend className="sr-only">Timeframe</legend>
+          <div className="field-row">
+            <div className="field">
+              <label htmlFor="f-start">From</label>
+              <input id="f-start" name="start" type="date" defaultValue={fund?.startDay ?? dayKey(new Date())} />
+            </div>
+            <div className="field">
+              <label htmlFor="f-end">Until</label>
+              <input
+                id="f-end"
+                name="end"
+                type="date"
+                // "" not undefined: React leaves the old date in place when this becomes undefined.
+                defaultValue={fund?.endDay ?? ""}
+                aria-invalid={errors.end || undefined}
+                aria-describedby={errors.end ? "f-end-error" : "f-end-hint"}
+              />
+              {errors.end ? (
+                <FieldError id="f-end-error">Pick a day after the start.</FieldError>
+              ) : (
+                <p id="f-end-hint" className="field-hint">Optional. When you want to reach the target.</p>
+              )}
+            </div>
+          </div>
+        </fieldset>
+        {planLine && (
+          <p className="dialog-note fund-plan" aria-live="polite">
+            {planLine}
+          </p>
+        )}
         {goals.length > 0 && (
           <div className="field">
             <label htmlFor="f-goal">For a goal</label>

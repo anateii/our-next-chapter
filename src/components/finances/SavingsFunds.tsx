@@ -1,7 +1,18 @@
-import { Heart, Plus } from "lucide-react";
+import { CircleAlert, CircleCheck, Heart, Plus, TrendingDown } from "lucide-react";
 import type { Goal } from "../../types";
 import { usePeople } from "../../helpers/people";
-import { formatWhole, paceText, pct, savedIn, type Finances, type Fund } from "../../helpers/finances";
+import {
+  formatWhole,
+  fundStatus,
+  monthLabel,
+  monthOf,
+  monthShort,
+  pct,
+  savedIn,
+  type Finances,
+  type Fund,
+  type FundStatus,
+} from "../../helpers/finances";
 import GoalMenu from "../GoalMenu";
 import InfoTip from "../InfoTip";
 
@@ -131,6 +142,7 @@ function FundCard({
               </span>
             )}
             {f.monthlyCents > 0 && <span>{formatWhole(f.monthlyCents)} a month</span>}
+            {f.endDay && <span>until {monthLabel(monthOf(f.endDay))}</span>}
           </span>
         </button>
         <GoalMenu
@@ -144,9 +156,6 @@ function FundCard({
       <div className="fund-nums">
         <span>
           <b>{formatWhole(total)}</b> of {formatWhole(f.targetCents)}
-        </span>
-        <span className={`pace${total >= f.targetCents ? " done" : ""}`}>
-          {paceText(f.targetCents - total, f.monthlyCents)}
         </span>
       </div>
       <div
@@ -169,6 +178,41 @@ function FundCard({
           </span>
         )}
       </div>
+      <MonthStatus status={fundStatus(f, data.contributions)} />
     </article>
   );
+}
+
+// How the fund is doing: red when it won't make its end day, yellow when this
+// month's payment isn't all in, green when it's on track.
+function MonthStatus({ status }: Readonly<{ status: FundStatus }>) {
+  if (status.kind === "done")
+    return (
+      <p className="fund-status paid">
+        <CircleCheck aria-hidden="true" size={14} />
+        Target reached
+      </p>
+    );
+  if (status.kind === "missing")
+    return (
+      <p className="fund-status missing">
+        <CircleAlert aria-hidden="true" size={14} />
+        Missing {formatWhole(status.cents)} for {monthShort(status.month)}
+      </p>
+    );
+  if (status.kind === "behind")
+    return (
+      <p className="fund-status behind">
+        <TrendingDown aria-hidden="true" size={14} />
+        Behind: needs {formatWhole(status.cents)} a month for {monthLabel(monthOf(status.endDay))}
+      </p>
+    );
+  if (status.kind === "paid")
+    return (
+      <p className="fund-status paid">
+        <CircleCheck aria-hidden="true" size={14} />
+        On track: {monthShort(status.month)} is paid
+      </p>
+    );
+  return null;
 }

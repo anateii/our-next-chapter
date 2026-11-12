@@ -85,6 +85,19 @@
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
+
+  /* Chart palette (the budget pie and the category icons): the data-viz
+     reference categorical palette, validated for touching marks in both themes
+     (adjacent CVD ΔE ≥ 8.4, normal-vision ΔE ≥ 17, grey "Other" included). */
+  --viz-1: #2a78d6;
+  --viz-2: #eb6834;
+  --viz-3: #1baf7a;
+  --viz-4: #eda100;
+  --viz-5: #e87ba4;
+  --viz-6: #008300;
+  --viz-7: #6250d6;
+  --viz-8: #e34948;
+  --viz-other: #8b8a86;
 }
 
 /* Dark theme. index.html sets data-theme before first paint (saved choice,
@@ -146,6 +159,16 @@
   --rose: #ec8fbe;
 
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 28px rgba(0, 0, 0, 0.32);
+
+  --viz-1: #3987e5;
+  --viz-2: #d95926;
+  --viz-3: #199e70;
+  --viz-4: #c98500;
+  --viz-5: #d55181;
+  --viz-6: #008300;
+  --viz-7: #9085e9;
+  --viz-8: #e66767;
+  --viz-other: #5f5e5a; /* darker than the slots, so it stays apart from the red under protan */
 }
 
 html,
@@ -173,6 +196,14 @@ button,
 input {
   font: inherit;
   color: inherit;
+}
+
+/* Fieldsets group controls; they shouldn't draw the browser's box. */
+fieldset {
+  margin: 0;
+  padding: 0;
+  border: none;
+  min-width: 0;
 }
 
 button {

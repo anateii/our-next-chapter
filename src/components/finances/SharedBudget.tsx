@@ -109,7 +109,13 @@ export default function SharedBudget({
                     {budget > 0 && ` / ${formatWhole(budget)}`}
                   </span>
                 </span>
-                <progress className={`fin-bar${over ? " over" : ""}`} aria-label={`${c.label} budget used`} value={pct(spent, budget)} max={100} />
+                <progress
+                  className={`fin-bar${over ? " over" : ""}`}
+                  data-cat={c.key}
+                  aria-label={`${c.label} budget used`}
+                  value={pct(spent, budget)}
+                  max={100}
+                />
               </div>
               <span className={`cat-left${over ? " over" : ""}`}>{status}</span>
             </li>
