@@ -355,7 +355,7 @@
 .sidebar {
   position: sticky;
   top: 0;
-  /* Sticky makes its own stacking layer: lift it so the account menu opens over the page */
+  /* Sticky makes its own stacking layer: lift it above the page content */
   z-index: 30;
   height: 100dvh;
   padding: 28px 16px 24px;
@@ -433,7 +433,7 @@
   gap: 8px;
 }
 
-/* Account: the space button at the foot of the sidebar and its menu */
+/* Account: the space button at the foot of the sidebar; it opens Settings */
 .account {
   position: relative;
 }
@@ -479,138 +479,6 @@
 .account-chevron {
   flex-shrink: 0;
   color: var(--muted);
-}
-.account-menu {
-  position: absolute;
-  left: 0;
-  bottom: calc(100% + 8px);
-  z-index: 40;
-  width: 300px;
-  padding: 6px;
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  box-shadow: 0 16px 48px rgba(28, 27, 46, 0.22);
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  animation: dialog-in 160ms var(--ease);
-}
-.account-menu > button {
-  min-height: 40px;
-  padding: 0 10px;
-  border: none;
-  border-radius: 10px;
-  background: transparent;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--text);
-  font-size: 14px;
-  font-weight: 500;
-  text-align: left;
-}
-.account-menu > button:hover,
-.account-menu > button:focus-visible {
-  background: var(--accent-soft);
-  outline: none;
-}
-.account-menu kbd {
-  margin-left: auto;
-  padding: 1px 6px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  font-family: inherit;
-  font-size: 12px;
-  color: var(--muted);
-}
-.account-menu hr {
-  width: calc(100% - 8px);
-  margin: 4px;
-  border: none;
-  border-top: 1px solid var(--line-soft);
-}
-.account-head,
-.account-me {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 10px 8px;
-}
-.account-head .avatar {
-  width: 38px;
-  height: 38px;
-  font-size: 14px;
-}
-.account-head > span:last-child,
-.account-me > span:last-child {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  font-size: 12px;
-  color: var(--muted);
-}
-.account-head strong,
-.account-me strong {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text);
-}
-.account-me {
-  padding: 6px 10px;
-}
-.account-me > span:last-child > span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.account-me img,
-.account-me .avatar {
-  width: 28px;
-  height: 28px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  object-fit: cover;
-  border: none;
-}
-.account-theme {
-  min-height: 44px;
-  padding: 0 4px 0 10px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 14px;
-  font-weight: 500;
-}
-.account-theme > span:first-child {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.account-theme-options {
-  display: flex;
-  padding: 3px;
-  border-radius: 10px;
-  background: var(--seg-bg);
-}
-.account-theme-options button {
-  width: 34px;
-  height: 30px;
-  border: none;
-  border-radius: 7px;
-  background: transparent;
-  display: grid;
-  place-items: center;
-  color: var(--muted);
-}
-.account-theme-options button[aria-checked="true"] {
-  background: var(--surface);
-  color: var(--accent);
-  box-shadow: 0 1px 3px rgba(28, 27, 46, 0.12);
-}
-.account-theme-options button:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
 }
 
 /* Top bar + greeting */
@@ -1133,7 +1001,7 @@
     clip-path: inset(50%);
     white-space: nowrap;
   }
-  /* Account: just the two avatars in the app bar; the menu drops down */
+  /* Account: just the two avatars in the app bar */
   .account-trigger {
     width: auto;
     min-height: 44px;
@@ -1143,13 +1011,6 @@
   .account-text,
   .account-chevron {
     display: none;
-  }
-  .account-menu {
-    left: auto;
-    right: 0;
-    bottom: auto;
-    top: calc(100% + 8px);
-    width: min(300px, calc(100vw - 32px));
   }
 
   /* Keep the last content clear of the fixed bottom nav */

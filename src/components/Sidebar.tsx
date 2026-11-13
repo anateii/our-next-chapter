@@ -6,7 +6,7 @@ import {
   Wallet,
   Smile,
 } from "lucide-react";
-import AccountMenu from "./AccountMenu";
+import AccountButton from "./AccountButton";
 import type { SettingsTab } from "./SettingsDialog";
 
 // On small screens the nav becomes a bottom bar, which holds at most five
@@ -58,7 +58,7 @@ export default function Sidebar({
           <Smile aria-hidden="true" size={20} />{" "}
           <span className="nav-label">Our Space</span>
         </a>
-        <AccountMenu onOpenSettings={onOpenSettings} />
+        <AccountButton onOpenSettings={onOpenSettings} />
       </div>
     </aside>
   );
