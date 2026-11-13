@@ -3,6 +3,7 @@ import { flushSync } from "react-dom";
 import { smoothly } from "./helpers/motion";
 import { Show, SignIn, useAuth } from "@clerk/react";
 import type { CalendarEvent, Goal, Task } from "./types";
+import Splash from "./components/Splash";
 import SettingsDialog, { type SettingsTab, type SpaceFields } from "./components/SettingsDialog";
 import Sidebar from "./components/Sidebar";
 import Home from "./pages/Home";
@@ -14,7 +15,7 @@ import Space from "./pages/Space";
 import type { NewEvent } from "./components/EventDialog";
 import Onboarding from "./pages/Onboarding";
 import type { GoalEdits } from "./components/NewGoalDialog";
-import { Check, CircleAlert, LoaderCircle, Undo2 } from "lucide-react";
+import { Check, CircleAlert, Undo2 } from "lucide-react";
 import TaskDialog, {
   type NewTask,
   type TaskDraft,
@@ -770,22 +771,12 @@ export default function App() {
 
   const featured = goals.find((g) => g.featured);
 
-  const signedIn = () => {
-    const loading =
-      spaceState === "checking" ||
-      (spaceState === "ready" && !dataLoaded && !previewOnboarding);
-    if (loading)
-      return (
-        <output className="auth-screen">
-          <LoaderCircle
-            className="spin"
-            aria-hidden="true"
-            size={28}
-            color="var(--accent)"
-          />
-          <span className="sr-only">Loading your space…</span>
-        </output>
-      );
+  const loading =
+    spaceState === "checking" ||
+    (spaceState === "ready" && !dataLoaded && !previewOnboarding);
+
+  // What the splash uncovers once loading ends.
+  const loaded = () => {
     if (spaceState === "error")
       return (
         <div className="auth-screen">
@@ -968,7 +959,10 @@ export default function App() {
           <SignIn routing="hash" />
         </div>
       </Show>
-      <Show when="signed-in">{signedIn()}</Show>
+      <Show when="signed-in">
+        {!loading && loaded()}
+        <Splash done={!loading} />
+      </Show>
     </>
   );
 }

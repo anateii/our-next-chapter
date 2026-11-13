@@ -65,6 +65,21 @@
   --hero-b: #6d5bd6;
   --rose: #b0457a; /* cheers on wins */
 
+  /* Glass: only for layers that float above content (sidebar, app bar,
+     bottom nav, tabs, menus, toasts, dialogs). Cards, rows, tables and
+     fields stay solid. Matches the landing page's recipe. */
+  --glass-bg: rgba(255, 255, 255, 0.6);
+  /* Text over moving content (phone bars, toast, menus). 0.88 keeps --muted
+     at 4.5:1 even with a dark photo scrolling underneath. */
+  --glass-strong: rgba(255, 255, 255, 0.88);
+  --glass-seg: rgba(236, 235, 244, 0.72); /* tab tracks: keeps the white thumb visible */
+  --glass-line: rgba(255, 255, 255, 0.7);
+  --glass-blur: blur(18px) saturate(1.4);
+  /* The soft brand glows behind the app that give the glass something to blur */
+  --orb-violet: rgba(91, 71, 214, 0.13);
+  --orb-coral: rgba(255, 107, 107, 0.1);
+  --orb-amber: rgba(255, 162, 76, 0.12);
+
   /* Shape & motion */
   --radius-sm: 12px;
   --radius-md: 18px;
@@ -158,6 +173,14 @@
   --hero-b: #4b3f9e;
   --rose: #ec8fbe;
 
+  --glass-bg: rgba(28, 27, 42, 0.6);
+  --glass-strong: rgba(28, 27, 42, 0.88);
+  --glass-seg: rgba(35, 33, 52, 0.66);
+  --glass-line: rgba(255, 255, 255, 0.1);
+  --orb-violet: rgba(91, 71, 214, 0.26);
+  --orb-coral: rgba(255, 107, 107, 0.13);
+  --orb-amber: rgba(255, 162, 76, 0.1);
+
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 28px rgba(0, 0, 0, 0.32);
 
   --viz-1: #3987e5;
@@ -183,6 +206,37 @@ body,
 body {
   background: var(--bg);
   line-height: 1.5;
+}
+/* Brand glows behind everything; fixed so they stay put while pages scroll */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(45vmax 45vmax at 5% 0%, var(--orb-violet), transparent 70%),
+    radial-gradient(38vmax 38vmax at 100% 15%, var(--orb-coral), transparent 70%),
+    radial-gradient(45vmax 45vmax at 45% 110%, var(--orb-amber), transparent 70%);
+}
+
+/* No blur support, or the user asked for less transparency: glass turns solid */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root,
+  :root[data-theme="dark"] {
+    --glass-bg: var(--surface);
+    --glass-strong: var(--surface);
+    --glass-seg: var(--seg-bg);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root,
+  :root[data-theme="dark"] {
+    --glass-bg: var(--surface);
+    --glass-strong: var(--surface);
+    --glass-seg: var(--seg-bg);
+    --glass-blur: none;
+  }
 }
 
 h1,
@@ -246,8 +300,26 @@ input:focus-visible {
 .vt-page .main {
   view-transition-name: page;
 }
-.vt-page::view-transition-group(page) {
-  animation: none; /* jump to the new page's size; the fades carry the change */
+/* The sidebar (on phones: the app bar) and its nav (on phones: the bottom
+   bar) get their own layers. They come after .main in paint order, so they
+   are drawn above the moving page instead of being covered by it, which
+   matters on phones where the page scrolls under both bars. */
+.vt-page .sidebar {
+  view-transition-name: app-bar;
+}
+.vt-page .sidebar nav {
+  view-transition-name: tab-bar;
+}
+.vt-page::view-transition-group(page),
+.vt-page::view-transition-group(app-bar),
+.vt-page::view-transition-group(tab-bar) {
+  animation: none; /* no size or position tween; the fades carry the change */
+}
+.vt-page::view-transition-old(app-bar),
+.vt-page::view-transition-new(app-bar),
+.vt-page::view-transition-old(tab-bar),
+.vt-page::view-transition-new(tab-bar) {
+  animation-duration: var(--dur); /* identical but for the active link */
 }
 .vt-page::view-transition-old(page) {
   animation: page-out var(--dur-page-out) cubic-bezier(0.4, 0, 1, 1) both;

@@ -18,7 +18,8 @@
   flex-direction: column;
   gap: 14px;
   overflow-y: auto;
-  background: var(--surface-sunken);
+  /* A light tint over the dialog's glass, not a solid panel */
+  background: color-mix(in srgb, var(--surface-sunken) 55%, transparent);
   border-right: 1px solid var(--line);
 }
 .settings-group {
