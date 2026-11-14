@@ -20,8 +20,6 @@
   /* The landing page's dark values, fixed here so the light theme can't change them */
   --gate-text: #edecf7;
   --gate-text-2: #c9c7dc;
-  --gate-sage: #6cc08f;
-  --gate-sage-soft: #1d3327;
   --heart-violet: #a78bfa;
   --heart-rose: #ff7a9c;
   --heart-amber: #ffb057;
@@ -129,83 +127,64 @@
   color: var(--gate-text-2);
 }
 
-.gate-cards {
+.gate-stores {
   width: 100%;
-  margin: 12px 0 0;
-  padding: 0;
-  list-style: none;
+  margin-top: 20px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  text-align: left;
 }
-/* The landing page's glass choice card */
-.gate-card {
-  min-height: 84px;
-  padding: 16px;
+/* A caption with a hairline on each side */
+.gate-divider {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 12px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.06);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
-}
-.gate-icon {
-  width: 48px;
-  height: 48px;
-  flex: none;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-}
-.gate-icon-white {
-  background: #ffffff;
-  color: #13121d;
-}
-.gate-icon-sage {
-  background: var(--gate-sage-soft);
-  color: var(--gate-sage);
-}
-.gate-card-text {
-  flex: 1 1 160px;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  font-size: 14px;
+  gap: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   color: var(--gate-text-2);
 }
-.gate-card-text strong {
-  font-size: 16px;
-  color: var(--gate-text);
+.gate-divider::before,
+.gate-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.16);
 }
-.gate-card-text > span {
-  overflow-wrap: anywhere;
+.gate-badges {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  text-align: left;
 }
-.gate-copy {
-  min-height: 44px;
-  padding: 0 16px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--gate-text);
-  display: inline-flex;
+/* Shaped like a store badge, but plain text and not a link */
+.gate-badge {
+  min-height: 52px;
+  padding: 8px 12px;
+  display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  transition: background var(--dur) var(--ease);
+  gap: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 14px;
+  background: rgba(10, 9, 20, 0.5);
 }
-.gate-copy:hover {
-  background: rgba(255, 255, 255, 0.18);
+.gate-badge img {
+  flex: none;
 }
-.gate-soon {
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: var(--gate-sage-soft);
-  color: var(--gate-sage);
-  font-size: 13px;
-  font-weight: 600;
+.gate-badge small,
+.gate-badge b {
+  display: block;
+  line-height: 1.2;
+}
+.gate-badge small {
+  font-size: 11px;
+  color: var(--gate-text-2);
+}
+.gate-badge b {
+  font-size: 16px;
+  font-weight: 700;
 }
